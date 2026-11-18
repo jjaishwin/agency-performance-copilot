@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.databricks/
+metastore_db/
+derby.log
+spark-warehouse/
+mlruns/
+.DS_Store
+.env

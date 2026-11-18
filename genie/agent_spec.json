@@ -1,0 +1,675 @@
+{
+  "meta": {
+    "title": "Agency Performance Copilot",
+    "description": "Ask about AA passenger share, fair share (QSI), contract attainment, agency revenue share, NDC adoption, incentive cost and AAdvantage Business compliance. Built on certified Unity Catalog tables. Synthetic data for demonstration.",
+    "benchmark_labels": {
+      "70000000c9512565ef6194ca664dc41e": "B1",
+      "70000001bbd97b00c539801e32317ab5": "B2",
+      "700000020c4ecd7b59ebc5b9f47974cb": "B3",
+      "70000003d5d4cc7b09d1843517acc936": "B4",
+      "700000042a1ab298edf0162a3305e599": "B5",
+      "7000000568b1f1cc15d8987eafe633c9": "B6",
+      "70000006d8498108dd603522047564a8": "B7",
+      "70000007c897976b22b91e2937555adb": "B8",
+      "7000000818fc90be5b8124af983421d2": "B9",
+      "700000095224d572f0d791f58c66e4dc": "B10",
+      "7000000ac064aa5670a62419ecc714e0": "B11",
+      "7000000b8acfe827853aff5217d7ef21": "B12",
+      "7000000ced90f7f5841740336de541fe": "B13",
+      "7000000d530dfc676c50e010122f2144": "B14",
+      "7000000eb76c54330985f58b41b1a3eb": "B15"
+    }
+  },
+  "serialized_space": {
+    "version": 2,
+    "config": {
+      "sample_questions": [
+        {
+          "id": "10000000e01c90ee4e799e2f875e8d21",
+          "question": [
+            "Which managed accounts are at risk this year?"
+          ]
+        },
+        {
+          "id": "10000001dfdc515da2e4d1d70dd3a18b",
+          "question": [
+            "What is our share versus fair share by region this year?"
+          ]
+        },
+        {
+          "id": "100000024df94b509c32abb8f409ced4",
+          "question": [
+            "Which agencies have the highest NDC adoption this year?"
+          ]
+        }
+      ]
+    },
+    "data_sources": {
+      "tables": [
+        {
+          "identifier": "workspace.gold.aadv_business_compliance",
+          "description": [
+            "SMB accounts by month: AA bookings and how many were missing the AAdvantage Business ID. Synthetic."
+          ],
+          "column_configs": [
+            {
+              "column_name": "account_manager",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "account_name",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "region",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            }
+          ]
+        },
+        {
+          "identifier": "workspace.gold.account_market_month",
+          "description": [
+            "One row per account, market and month. AA and all-carrier passengers and revenue, QSI fair share, contract target share. Synthetic."
+          ],
+          "column_configs": [
+            {
+              "column_name": "account_manager",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "account_name",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "market_name",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "region",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "segment",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            }
+          ]
+        },
+        {
+          "identifier": "workspace.gold.agency_month",
+          "description": [
+            "One row per travel agency and month. AA and total revenue, NDC bookings, incentive cost, parent company at the time. Synthetic."
+          ],
+          "column_configs": [
+            {
+              "column_name": "agency_name",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "agency_tier",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "parent_tmc_asof",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            }
+          ]
+        }
+      ],
+      "metric_views": [
+        {
+          "identifier": "workspace.gold.mv_account_performance",
+          "description": [
+            "Certified account metrics. Use MEASURE() for passenger_share, fair_share_qsi, share_vs_qsi_pts, contract_attainment, revenue_share, premium_mix."
+          ],
+          "column_configs": [
+            {
+              "column_name": "account_manager",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "account_name",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "market_name",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "region",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "segment",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            }
+          ]
+        },
+        {
+          "identifier": "workspace.gold.mv_agency_performance",
+          "description": [
+            "Certified agency metrics. Use MEASURE() for revenue_share, ndc_share, incentive_cost, revenue_per_incentive_dollar."
+          ],
+          "column_configs": [
+            {
+              "column_name": "agency_name",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "agency_tier",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            },
+            {
+              "column_name": "parent_tmc",
+              "enable_entity_matching": true,
+              "enable_format_assistance": true
+            }
+          ]
+        }
+      ]
+    },
+    "instructions": {
+      "text_instructions": [
+        {
+          "id": "20000000fad58de7366495db4650cfef",
+          "content": [
+            "You answer questions for an airline's Global Sales account managers and sales leaders. All data is synthetic.\n\nDefinitions (always use these):\n- \"Share\" means passenger share (AA passengers / all-carrier passengers) unless the user says \"revenue share\".\n- \"Fair share\" and \"QSI\" mean the passenger-weighted QSI: SUM(qsi_share * total_pax) / SUM(total_pax). Never average qsi_share directly.\n- \"Share gap\" or \"share vs QSI\" = passenger share minus fair share, in percentage points.\n- \"Contract attainment\" = SUM(aa_pax) / SUM(target_share * total_pax), using only rows where qsi_eligible is true. Only Managed accounts have contracts.\n- An account is \"at risk\" when contract attainment is below 0.90.\n- \"YTD\" or \"so far this year\" means from 2026-01-01 through the latest month in the data (2026-10-01).\n- Quarters are calendar quarters. Q3 2026 = months 2026-07-01 to 2026-09-01.\n- AA is the home carrier in this synthetic data. XA and XB are competitors.\n- \"Agencies\" are travel agencies in agency_month. Tiers are TMC, OTA and Leisure. Use parent_tmc_asof for parent company questions.\n\nRules:\n- Always compute ratios as SUM(numerator) / SUM(denominator). Never average percentages.\n- Prefer the metric views (mv_account_performance, mv_agency_performance) and use MEASURE() for their measures.\n- Show percentages to one decimal place and currency in USD with no decimals.\n- If a question is ambiguous (for example \"share\" over an unspecified period), ask which period, or state the assumption you used.\n- Never return PNR or traveler-level fields."
+          ]
+        }
+      ],
+      "example_question_sqls": [
+        {
+          "id": "300000007162c608b4a6439f98cec306",
+          "question": [
+            "Instructions \u2192 SQL queries**, add these five as trusted examples. Use the question as the title.\n\n**Which managed accounts are at risk this year?"
+          ],
+          "sql": [
+            "SELECT account_name, account_manager,\n",
+            "       SUM(CASE WHEN qsi_eligible THEN aa_pax END)\n",
+            "         / SUM(CASE WHEN qsi_eligible THEN target_share * total_pax END) AS contract_attainment\n",
+            "FROM workspace.gold.account_market_month\n",
+            "WHERE segment = 'Managed' AND month >= DATE'2026-01-01'\n",
+            "GROUP BY account_name, account_manager\n",
+            "HAVING SUM(CASE WHEN qsi_eligible THEN aa_pax END)\n",
+            "         / SUM(CASE WHEN qsi_eligible THEN target_share * total_pax END) < 0.90\n",
+            "ORDER BY contract_attainment"
+          ]
+        },
+        {
+          "id": "30000001dfdc515da2e4d1d70dd3a18b",
+          "question": [
+            "What is our share versus fair share by region this year?"
+          ],
+          "sql": [
+            "SELECT region,\n",
+            "       MEASURE(passenger_share)  AS passenger_share,\n",
+            "       MEASURE(fair_share_qsi)   AS fair_share,\n",
+            "       MEASURE(share_vs_qsi_pts) AS share_gap_pts\n",
+            "FROM workspace.gold.mv_account_performance\n",
+            "WHERE month >= DATE'2026-01-01'\n",
+            "GROUP BY region\n",
+            "ORDER BY share_gap_pts"
+          ]
+        },
+        {
+          "id": "300000024df94b509c32abb8f409ced4",
+          "question": [
+            "Which agencies have the highest NDC adoption this year?"
+          ],
+          "sql": [
+            "SELECT agency_name, agency_tier, MEASURE(ndc_share) AS ndc_share, MEASURE(aa_revenue) AS aa_revenue\n",
+            "FROM workspace.gold.mv_agency_performance\n",
+            "WHERE month >= DATE'2026-01-01'\n",
+            "GROUP BY agency_name, agency_tier\n",
+            "ORDER BY ndc_share DESC\n",
+            "LIMIT 10"
+          ]
+        },
+        {
+          "id": "30000003fa7a2d461664654ebb1c4d04",
+          "question": [
+            "Which markets are below fair share for an account?"
+          ],
+          "sql": [
+            "SELECT market_name,\n",
+            "       SUM(total_pax) AS total_pax,\n",
+            "       SUM(aa_pax) / SUM(total_pax) AS passenger_share,\n",
+            "       SUM(qsi_share * total_pax) / SUM(total_pax) AS fair_share\n",
+            "FROM workspace.gold.account_market_month\n",
+            "WHERE account_name = :account_name AND month >= DATE'2026-01-01'\n",
+            "GROUP BY market_name\n",
+            "HAVING SUM(aa_pax) / SUM(total_pax) < SUM(qsi_share * total_pax) / SUM(total_pax)\n",
+            "ORDER BY total_pax DESC"
+          ],
+          "parameters": [
+            {
+              "name": "account_name",
+              "type_hint": "STRING",
+              "description": [
+                "Exact managed account name, for example from dim_account"
+              ]
+            }
+          ],
+          "usage_guidance": [
+            "Use when the user asks where a specific account is below fair share"
+          ]
+        },
+        {
+          "id": "30000004ebd9d97462462f1aec600279",
+          "question": [
+            "How much AA revenue does each dollar of incentive buy, by agency tier?"
+          ],
+          "sql": [
+            "SELECT agency_tier, MEASURE(incentive_cost) AS incentive_cost,\n",
+            "       MEASURE(aa_revenue) AS aa_revenue, MEASURE(revenue_per_incentive_dollar) AS revenue_per_incentive_dollar\n",
+            "FROM workspace.gold.mv_agency_performance\n",
+            "WHERE month >= DATE'2026-01-01'\n",
+            "GROUP BY agency_tier\n",
+            "ORDER BY revenue_per_incentive_dollar DESC"
+          ]
+        }
+      ],
+      "sql_snippets": {
+        "filters": [
+          {
+            "id": "400000001848fdec29d3c6469b7a5668",
+            "sql": [
+              "account_market_month.segment = 'Managed'"
+            ],
+            "display_name": "managed accounts"
+          },
+          {
+            "id": "4000000166fecf9978d72454d3691cb3",
+            "sql": [
+              "account_market_month.month >= DATE'2026-01-01'"
+            ],
+            "display_name": "this year"
+          },
+          {
+            "id": "40000002f4def053ab31588ba1ebb858",
+            "sql": [
+              "account_market_month.qsi_eligible = true"
+            ],
+            "display_name": "eligible markets"
+          }
+        ],
+        "measures": [
+          {
+            "id": "6000000061598e0a2d47ee15d89195b9",
+            "alias": "passenger_share",
+            "sql": [
+              "SUM(account_market_month.aa_pax) / SUM(account_market_month.total_pax)"
+            ],
+            "display_name": "passenger share",
+            "synonyms": [
+              "share",
+              "pax share"
+            ]
+          },
+          {
+            "id": "60000001d1a0079248b5bb6034c27ed5",
+            "alias": "fair_share",
+            "sql": [
+              "SUM(account_market_month.qsi_share * account_market_month.total_pax) / SUM(account_market_month.total_pax)"
+            ],
+            "display_name": "fair share",
+            "synonyms": [
+              "QSI",
+              "expected share"
+            ]
+          },
+          {
+            "id": "6000000285db006fdbd95b95cdf43dfd",
+            "alias": "share_gap_pts",
+            "sql": [
+              "(SUM(account_market_month.aa_pax) - SUM(account_market_month.qsi_share * account_market_month.total_pax)) / SUM(account_market_month.total_pax) * 100"
+            ],
+            "display_name": "share gap pts",
+            "synonyms": [
+              "share vs QSI"
+            ]
+          },
+          {
+            "id": "600000038776f803d808fd325c37a9e2",
+            "alias": "contract_attainment",
+            "sql": [
+              "SUM(CASE WHEN account_market_month.qsi_eligible THEN account_market_month.aa_pax END) / SUM(CASE WHEN account_market_month.qsi_eligible THEN account_market_month.target_share * account_market_month.total_pax END)"
+            ],
+            "display_name": "contract attainment",
+            "synonyms": [
+              "attainment"
+            ]
+          }
+        ]
+      }
+    },
+    "benchmarks": {
+      "questions": [
+        {
+          "id": "70000000c9512565ef6194ca664dc41e",
+          "question": [
+            "What was AA's passenger share by region in Q3 2026?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT region, SUM(aa_pax) / SUM(total_pax) AS passenger_share\n",
+                "FROM workspace.gold.account_market_month\n",
+                "WHERE month BETWEEN DATE'2026-07-01' AND DATE'2026-09-01'\n",
+                "GROUP BY region\n",
+                "ORDER BY region"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "70000001bbd97b00c539801e32317ab5",
+          "question": [
+            "Which 10 managed accounts have the lowest contract attainment so far this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT account_name,\n",
+                "       SUM(CASE WHEN qsi_eligible THEN aa_pax END)\n",
+                "         / SUM(CASE WHEN qsi_eligible THEN target_share * total_pax END) AS contract_attainment\n",
+                "FROM workspace.gold.account_market_month\n",
+                "WHERE segment = 'Managed' AND month >= DATE'2026-01-01'\n",
+                "GROUP BY account_name\n",
+                "ORDER BY contract_attainment ASC\n",
+                "LIMIT 10"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "700000020c4ecd7b59ebc5b9f47974cb",
+          "question": [
+            "How many managed accounts are at risk this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "WITH a AS (\n",
+                "  SELECT account_id,\n",
+                "         SUM(CASE WHEN qsi_eligible THEN aa_pax END)\n",
+                "           / SUM(CASE WHEN qsi_eligible THEN target_share * total_pax END) AS contract_attainment\n",
+                "  FROM workspace.gold.account_market_month\n",
+                "  WHERE segment = 'Managed' AND month >= DATE'2026-01-01'\n",
+                "  GROUP BY account_id\n",
+                ")\n",
+                "SELECT COUNT(*) AS at_risk_accounts FROM a WHERE contract_attainment < 0.90"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "70000003d5d4cc7b09d1843517acc936",
+          "question": [
+            "Which account managers have the most at-risk accounts this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "WITH a AS (\n",
+                "  SELECT account_manager, account_id,\n",
+                "         SUM(CASE WHEN qsi_eligible THEN aa_pax END)\n",
+                "           / SUM(CASE WHEN qsi_eligible THEN target_share * total_pax END) AS contract_attainment\n",
+                "  FROM workspace.gold.account_market_month\n",
+                "  WHERE segment = 'Managed' AND month >= DATE'2026-01-01'\n",
+                "  GROUP BY account_manager, account_id\n",
+                ")\n",
+                "SELECT account_manager, COUNT(*) AS at_risk_accounts\n",
+                "FROM a WHERE contract_attainment < 0.90\n",
+                "GROUP BY account_manager\n",
+                "ORDER BY at_risk_accounts DESC"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "700000042a1ab298edf0162a3305e599",
+          "question": [
+            "Which markets are below AA's fair share so far this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT market_name,\n",
+                "       (SUM(aa_pax) - SUM(qsi_share * total_pax)) / SUM(total_pax) * 100 AS share_vs_qsi_pts\n",
+                "FROM workspace.gold.account_market_month\n",
+                "WHERE month >= DATE'2026-01-01'\n",
+                "GROUP BY market_name\n",
+                "HAVING (SUM(aa_pax) - SUM(qsi_share * total_pax)) / SUM(total_pax) < 0\n",
+                "ORDER BY share_vs_qsi_pts"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "7000000568b1f1cc15d8987eafe633c9",
+          "question": [
+            "Which 10 agencies had the largest drop in AA revenue share from Q2 to Q3 2026?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "WITH q AS (\n",
+                "  SELECT agency_id, agency_name,\n",
+                "         SUM(CASE WHEN month BETWEEN DATE'2026-04-01' AND DATE'2026-06-01' THEN aa_revenue END)\n",
+                "           / SUM(CASE WHEN month BETWEEN DATE'2026-04-01' AND DATE'2026-06-01' THEN total_revenue END) AS q2_share,\n",
+                "         SUM(CASE WHEN month BETWEEN DATE'2026-07-01' AND DATE'2026-09-01' THEN aa_revenue END)\n",
+                "           / SUM(CASE WHEN month BETWEEN DATE'2026-07-01' AND DATE'2026-09-01' THEN total_revenue END) AS q3_share\n",
+                "  FROM workspace.gold.agency_month\n",
+                "  WHERE month BETWEEN DATE'2026-04-01' AND DATE'2026-09-01'\n",
+                "  GROUP BY agency_id, agency_name\n",
+                ")\n",
+                "SELECT agency_name, q2_share, q3_share, q3_share - q2_share AS change\n",
+                "FROM q\n",
+                "WHERE q2_share IS NOT NULL AND q3_share IS NOT NULL\n",
+                "ORDER BY change ASC\n",
+                "LIMIT 10"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "70000006d8498108dd603522047564a8",
+          "question": [
+            "What is the NDC share of AA bookings by agency tier this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT agency_tier, SUM(aa_ndc_bookings) / SUM(aa_bookings) AS ndc_share\n",
+                "FROM workspace.gold.agency_month\n",
+                "WHERE month >= DATE'2026-01-01'\n",
+                "GROUP BY agency_tier\n",
+                "ORDER BY ndc_share DESC"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "70000007c897976b22b91e2937555adb",
+          "question": [
+            "What percent of SMB AA bookings were missing the AAdvantage Business ID in October 2026?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT SUM(missing_id_bookings) / SUM(aa_bookings) * 100 AS pct_missing_business_id\n",
+                "FROM workspace.gold.aadv_business_compliance\n",
+                "WHERE month = DATE'2026-10-01'"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "7000000818fc90be5b8124af983421d2",
+          "question": [
+            "How does premium mix compare between Managed and SMB accounts this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT segment, SUM(aa_premium_revenue) / SUM(aa_revenue) AS premium_mix\n",
+                "FROM workspace.gold.account_market_month\n",
+                "WHERE month >= DATE'2026-01-01'\n",
+                "GROUP BY segment"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "700000095224d572f0d791f58c66e4dc",
+          "question": [
+            "What was incentive cost versus AA revenue by agency tier this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT agency_tier,\n",
+                "       SUM(incentive_cost_usd) AS incentive_cost_usd,\n",
+                "       SUM(aa_revenue) AS aa_revenue,\n",
+                "       SUM(aa_revenue) / SUM(incentive_cost_usd) AS revenue_per_incentive_dollar\n",
+                "FROM workspace.gold.agency_month\n",
+                "WHERE month >= DATE'2026-01-01'\n",
+                "GROUP BY agency_tier\n",
+                "ORDER BY incentive_cost_usd DESC"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "7000000ac064aa5670a62419ecc714e0",
+          "question": [
+            "Show monthly AA revenue for 2026."
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT month, SUM(aa_revenue) AS aa_revenue\n",
+                "FROM workspace.gold.account_market_month\n",
+                "WHERE month >= DATE'2026-01-01'\n",
+                "GROUP BY month\n",
+                "ORDER BY month"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "7000000b8acfe827853aff5217d7ef21",
+          "question": [
+            "Which 5 Northeast accounts grew AA revenue the most, January\u2013October 2026 versus the same months of 2025?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT account_name,\n",
+                "       SUM(CASE WHEN month BETWEEN DATE'2026-01-01' AND DATE'2026-10-01' THEN aa_revenue ELSE 0 END)\n",
+                "     - SUM(CASE WHEN month BETWEEN DATE'2025-01-01' AND DATE'2025-10-01' THEN aa_revenue ELSE 0 END) AS revenue_growth_usd\n",
+                "FROM workspace.gold.account_market_month\n",
+                "WHERE region = 'Northeast'\n",
+                "GROUP BY account_name\n",
+                "ORDER BY revenue_growth_usd DESC\n",
+                "LIMIT 5"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "7000000ced90f7f5841740336de541fe",
+          "question": [
+            "Which parent TMC drove the most AA revenue this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT parent_tmc_asof AS parent_tmc, SUM(aa_revenue) AS aa_revenue\n",
+                "FROM workspace.gold.agency_month\n",
+                "WHERE month >= DATE'2026-01-01' AND parent_tmc_asof IS NOT NULL\n",
+                "GROUP BY parent_tmc_asof\n",
+                "ORDER BY aa_revenue DESC"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "7000000d530dfc676c50e010122f2144",
+          "question": [
+            "How many managed accounts are at or above their contract target this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "WITH a AS (\n",
+                "  SELECT account_id,\n",
+                "         SUM(CASE WHEN qsi_eligible THEN aa_pax END)\n",
+                "           / SUM(CASE WHEN qsi_eligible THEN target_share * total_pax END) AS contract_attainment\n",
+                "  FROM workspace.gold.account_market_month\n",
+                "  WHERE segment = 'Managed' AND month >= DATE'2026-01-01'\n",
+                "  GROUP BY account_id\n",
+                ")\n",
+                "SELECT COUNT(*) AS accounts_on_or_above_target FROM a WHERE contract_attainment >= 1.0"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "7000000eb76c54330985f58b41b1a3eb",
+          "question": [
+            "For {{ACCOUNT_X}}, what is passenger share versus fair share in its top 5 markets this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT market_name,\n",
+                "       SUM(total_pax) AS total_pax,\n",
+                "       SUM(aa_pax) / SUM(total_pax) AS passenger_share,\n",
+                "       SUM(qsi_share * total_pax) / SUM(total_pax) AS fair_share\n",
+                "FROM workspace.gold.account_market_month\n",
+                "WHERE account_name = '{{ACCOUNT_X}}' AND month >= DATE'2026-01-01'\n",
+                "GROUP BY market_name\n",
+                "ORDER BY total_pax DESC\n",
+                "LIMIT 5"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

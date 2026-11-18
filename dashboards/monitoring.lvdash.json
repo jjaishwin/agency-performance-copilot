@@ -1,0 +1,439 @@
+{
+  "datasets": [
+    {
+      "name": "benchmark_runs",
+      "displayName": "Benchmark Runs",
+      "queryLines": [
+        "SELECT run_id, MIN(run_ts) AS run_ts, FIRST(spec_version) AS spec_version,\n               SUM(CASE WHEN status = 'PASS' THEN 1 ELSE 0 END) AS passed, COUNT(*) AS total,\n               SUM(CASE WHEN status = 'PASS' THEN 1 ELSE 0 END) / COUNT(*) AS pass_rate,\n               AVG(latency_s) AS avg_latency_s\n        FROM workspace.gold.genie_benchmark_runs GROUP BY run_id"
+      ]
+    },
+    {
+      "name": "latest_failures",
+      "displayName": "Latest Failures",
+      "queryLines": [
+        "SELECT benchmark, status, question, detail, latency_s\n        FROM workspace.gold.genie_benchmark_runs\n        WHERE run_id = (SELECT run_id FROM workspace.gold.genie_benchmark_runs ORDER BY run_ts DESC LIMIT 1)\n          AND status <> 'PASS'\n        ORDER BY benchmark"
+      ]
+    },
+    {
+      "name": "dq_log",
+      "displayName": "Dq Log",
+      "queryLines": [
+        "SELECT check_name, failed_rows FROM workspace.silver.dq_log\n        WHERE run_at = (SELECT MAX(run_at) FROM workspace.silver.dq_log)"
+      ]
+    },
+    {
+      "name": "agency_status",
+      "displayName": "Agency Status",
+      "queryLines": [
+        "SELECT status, COUNT(*) AS agencies FROM workspace.gold.agency_scorecard GROUP BY status"
+      ]
+    },
+    {
+      "name": "account_risk",
+      "displayName": "Account Risk",
+      "queryLines": [
+        "SELECT risk_status, COUNT(*) AS accounts FROM workspace.gold.account_scorecard GROUP BY risk_status"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "monitoring",
+      "displayName": "Monitoring",
+      "layout": [
+        {
+          "widget": {
+            "name": "title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Agency Performance Copilot: can we trust it?\n",
+                "AI quality from the Genie benchmark gate, data quality from the pipeline, business health from the scorecards. Synthetic data."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "accuracy",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "benchmark_runs",
+                  "fields": [
+                    {
+                      "name": "run_ts",
+                      "expression": "`run_ts`"
+                    },
+                    {
+                      "name": "pass_rate",
+                      "expression": "`pass_rate`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "run_ts",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "run_ts"
+                },
+                "y": {
+                  "fieldName": "pass_rate",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "pass_rate"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Genie benchmark accuracy per run (gate: 90%)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 4,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "latency",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "benchmark_runs",
+                  "fields": [
+                    {
+                      "name": "avg_latency_s",
+                      "expression": "`avg_latency_s`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_latency_s",
+                  "displayName": "Avg Genie latency (s)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Genie latency (s)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "runs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "benchmark_runs",
+                  "fields": [
+                    {
+                      "name": "total",
+                      "expression": "`total`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total",
+                  "displayName": "Benchmarks per run"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Benchmarks per run"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 5,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "failures",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "latest_failures",
+                  "fields": [
+                    {
+                      "name": "benchmark",
+                      "expression": "`benchmark`"
+                    },
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "question",
+                      "expression": "`question`"
+                    },
+                    {
+                      "name": "detail",
+                      "expression": "`detail`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "benchmark",
+                    "displayName": "benchmark",
+                    "title": "benchmark",
+                    "visible": true,
+                    "order": 0
+                  },
+                  {
+                    "fieldName": "status",
+                    "displayName": "status",
+                    "title": "status",
+                    "visible": true,
+                    "order": 1
+                  },
+                  {
+                    "fieldName": "question",
+                    "displayName": "question",
+                    "title": "question",
+                    "visible": true,
+                    "order": 2
+                  },
+                  {
+                    "fieldName": "detail",
+                    "displayName": "detail",
+                    "title": "detail",
+                    "visible": true,
+                    "order": 3
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Latest run: benchmarks that didn't pass"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "dq",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_log",
+                  "fields": [
+                    {
+                      "name": "check_name",
+                      "expression": "`check_name`"
+                    },
+                    {
+                      "name": "failed_rows",
+                      "expression": "`failed_rows`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "check_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "check_name"
+                },
+                "y": {
+                  "fieldName": "failed_rows",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "failed_rows"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Data-quality check failures (latest pipeline run)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 3,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "agencies",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agency_status",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "agencies",
+                      "expression": "`agencies`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "status",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "status"
+                },
+                "y": {
+                  "fieldName": "agencies",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "agencies"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Agency scorecard status (latest quarter)"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 12,
+            "width": 3,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "accounts",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "account_risk",
+                  "fields": [
+                    {
+                      "name": "risk_status",
+                      "expression": "`risk_status`"
+                    },
+                    {
+                      "name": "accounts",
+                      "expression": "`accounts`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "risk_status",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "risk_status"
+                },
+                "y": {
+                  "fieldName": "accounts",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "accounts"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Managed account risk (YTD)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 3,
+            "height": 5
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ]
+}

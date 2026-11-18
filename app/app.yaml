@@ -1,0 +1,9 @@
+command: ["streamlit", "run", "app.py"]
+env:
+  - name: "DATABRICKS_WAREHOUSE_ID"
+    valueFrom: "sql-warehouse"
+  - name: "CATALOG"
+    value: "workspace"
+  # Optional: the Genie Agent ID. If blank, the app reads the latest one from gold.genie_agent_registry (notebook 09).
+  - name: "GENIE_SPACE_ID"
+    value: ""

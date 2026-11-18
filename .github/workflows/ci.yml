@@ -1,0 +1,72 @@
+# CI/CD for the Agency Performance Copilot.
+#
+# Every pull request: check the Genie spec is rebuilt from the guide, compile the notebooks,
+# and validate the bundle.
+# Every push to main: deploy the bundle and run the full pipeline. The pipeline's Genie
+# benchmark gate (notebook 09) fails the run if accuracy drops below the gate, so a change
+# that makes Genie worse can't ship quietly.
+#
+# Authentication: GitHub OIDC workload identity federation, so no Databricks token is stored.
+# Setup: create a Databricks service principal, add a federation policy that trusts this repo
+# (issuer https://token.actions.githubusercontent.com, subject repo:<owner>/<repo>:ref:refs/heads/main),
+# and grant it access to the workspace, catalog and warehouse.
+# Repository variables: DATABRICKS_ENABLED=true, DATABRICKS_HOST, DATABRICKS_CLIENT_ID (the SP's application ID),
+# DATABRICKS_WAREHOUSE_ID.
+name: ci
+
+permissions:
+  id-token: write   # lets the job request a GitHub OIDC token for Databricks
+  contents: read
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - name: Genie spec is up to date with GENIE_AGENT_SETUP.md
+        run: |
+          python genie/build_agent_spec.py
+          git diff --exit-code genie/agent_spec.json || (echo "Run python genie/build_agent_spec.py and commit agent_spec.json" && exit 1)
+      - name: Notebooks and app compile
+        run: python -m py_compile notebooks/*.py app/app.py genie/build_agent_spec.py
+
+  validate:
+    needs: checks
+    runs-on: ubuntu-latest
+    if: ${{ vars.DATABRICKS_ENABLED == 'true' }}
+    env:
+      DATABRICKS_AUTH_TYPE: github-oidc
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate --var warehouse_id=${{ vars.DATABRICKS_WAREHOUSE_ID }}
+
+  deploy_and_gate:
+    needs: validate
+    if: ${{ github.event_name != 'pull_request' && vars.DATABRICKS_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_AUTH_TYPE: github-oidc
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - name: Deploy
+        run: databricks bundle deploy --var warehouse_id=${{ vars.DATABRICKS_WAREHOUSE_ID }}
+      - name: Run pipeline and Genie benchmark gate
+        run: databricks bundle run copilot_pipeline --var warehouse_id=${{ vars.DATABRICKS_WAREHOUSE_ID }}

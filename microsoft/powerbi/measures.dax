@@ -1,0 +1,69 @@
+// Measures for the Direct Lake semantic model on the Fabric Lakehouse (copilot_lakehouse).
+// Put them in a table called _Measures (or on account_market_month). They match docs/METRIC_DICTIONARY.md,
+// so Power BI, Genie and the metric views give the same number for the same question.
+// Direct Lake models can't hold calculated tables, so the deal what-if uses the target_points table
+// from the Lakehouse (0, 5, 10, 15, 20) as a disconnected slicer instead of a "New parameter".
+
+Passenger Share =
+DIVIDE ( SUM ( account_market_month[aa_pax] ), SUM ( account_market_month[total_pax] ) )
+
+Revenue Share =
+DIVIDE ( SUM ( account_market_month[aa_revenue] ), SUM ( account_market_month[total_revenue] ) )
+
+Fair Share (QSI) =
+DIVIDE (
+    SUMX ( account_market_month, account_market_month[qsi_share] * account_market_month[total_pax] ),
+    SUM ( account_market_month[total_pax] )
+)
+
+Share Gap (pts) =
+( [Passenger Share] - [Fair Share (QSI)] ) * 100
+
+Contract Attainment =
+DIVIDE (
+    CALCULATE ( SUM ( account_market_month[aa_pax] ), account_market_month[qsi_eligible] = TRUE () ),
+    CALCULATE (
+        SUMX ( account_market_month, account_market_month[target_share] * account_market_month[total_pax] ),
+        account_market_month[qsi_eligible] = TRUE ()
+    )
+)
+
+At-Risk Accounts =
+COUNTROWS (
+    FILTER (
+        VALUES ( account_market_month[account_id] ),
+        NOT ISBLANK ( [Contract Attainment] ) && [Contract Attainment] < 0.90
+    )
+)
+
+Premium Mix =
+DIVIDE ( SUM ( account_market_month[aa_premium_revenue] ), SUM ( account_market_month[aa_revenue] ) )
+
+Agency Revenue Share =
+DIVIDE ( SUM ( agency_month[aa_revenue] ), SUM ( agency_month[total_revenue] ) )
+
+NDC Share =
+DIVIDE ( SUM ( agency_month[aa_ndc_bookings] ), SUM ( agency_month[aa_bookings] ) )
+
+Revenue per Incentive $ =
+DIVIDE ( SUM ( agency_month[aa_revenue] ), SUM ( agency_month[incentive_cost_usd] ) )
+
+// ---- Deal what-if --------------------------------------------------------------------------
+
+Target Points Value =
+SELECTEDVALUE ( target_points[target_points], 10 )
+
+Scenario Target Pax =
+SUMX (
+    FILTER ( account_market_month, account_market_month[qsi_eligible] ),
+    MIN ( account_market_month[qsi_share] + [Target Points Value] / 100, 0.95 ) * account_market_month[total_pax]
+)
+
+Scenario Attainment =
+DIVIDE (
+    CALCULATE ( SUM ( account_market_month[aa_pax] ), account_market_month[qsi_eligible] = TRUE () ),
+    [Scenario Target Pax]
+)
+
+Scenario Passenger Gap =
+MAX ( 0, [Scenario Target Pax] - CALCULATE ( SUM ( account_market_month[aa_pax] ), account_market_month[qsi_eligible] = TRUE () ) )
