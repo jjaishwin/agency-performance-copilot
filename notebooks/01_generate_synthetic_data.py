@@ -267,7 +267,12 @@ def generate_all(out_dir, seed=42, months=24, start_month="2024-11-01"):
             ws.append([ag.agency_name, arc_fmt, tier, target_fmt, rate_fmt, note])
         ws.append([f"{tier} Subtotal", None, None, None, None, f"{len(tier_rows)} agencies"])
         ws.append([])
-    wb.save(os.path.join(out_dir, "legacy", "Agency_Incentive_Targets_FY2026.xlsx"))
+    # Unity Catalog volumes don't support the random-access writes a zip-based .xlsx needs,
+    # so save to local disk first and copy the finished file into the volume.
+    import shutil, tempfile
+    local_xlsx = os.path.join(tempfile.mkdtemp(), "Agency_Incentive_Targets_FY2026.xlsx")
+    wb.save(local_xlsx)
+    shutil.copy(local_xlsx, os.path.join(out_dir, "legacy", "Agency_Incentive_Targets_FY2026.xlsx"))
 
     return {"bookings_rows": len(bookings), "agencies": len(agencies), "accounts": len(accounts),
             "markets": len(markets), "months": months, "duplicates_planted": len(dupes),
