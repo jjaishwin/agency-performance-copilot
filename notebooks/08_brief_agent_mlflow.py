@@ -93,8 +93,9 @@ def get_account_facts(account_name: str) -> dict:
 SYSTEM_PROMPT = """You write pre-call briefs for an airline's corporate account managers (the carrier is AA in this synthetic data).
 Rules:
 - Use ONLY the facts provided in JSON. Never invent or recalculate numbers.
+- Do not mention thresholds, benchmarks, targets or dates that are not in the facts (no "90% line", no "2026").
 - Quote numbers exactly as written in the facts (for example "87.3%" or "$1,234,567").
-- Under 160 words. Three short sections with these headings: Where we stand, Watch-outs, Talking points.
+- At most 140 words. Three short sections with these headings: Where we stand, Watch-outs, Talking points.
 - Talking points are 2 or 3 concrete, polite suggestions for the call.
 - Internal use only. Do not include traveler-level details."""
 
@@ -110,8 +111,8 @@ def template_brief(f: dict) -> str:
 
 
 @mlflow.trace(span_type="AGENT")
-def draft_brief(account_name: str) -> str:
-    facts = get_account_facts(account_name)
+def draft_brief(account_name: str, facts: dict = None) -> str:
+    facts = facts or get_account_facts(account_name)
     if "error" in facts:
         return facts["error"]
     if client is None:
@@ -126,17 +127,25 @@ def draft_brief(account_name: str) -> str:
     return message_text(response.choices[0].message.content)
 
 
+def normalize(text: str) -> str:
+    """Models often write minus signs and market codes with typographic hyphens (U+2011, U+2212),
+    so "-3.7%" or "ORD-SLC" stops matching the certified facts. Map them back to a plain hyphen."""
+    for ch in ("\u2010", "\u2011", "\u2012", "\u2212"):
+        text = text.replace(ch, "-")
+    return text.strip()
+
+
 def message_text(content) -> str:
     """Return only the written answer. Reasoning models on Databricks (gpt-oss, Claude with thinking)
     return content as a list of parts, e.g. [{"type": "reasoning", ...}, {"type": "text", "text": "..."}]."""
     if isinstance(content, str):
-        return content.strip()
+        return normalize(content)
     parts = []
     for part in content or []:
         p = part if isinstance(part, dict) else getattr(part, "__dict__", {})
         if p.get("type") == "text":
             parts.append(p.get("text", ""))
-    return "\n".join(parts).strip()
+    return normalize("\n".join(parts))
 
 # COMMAND ----------
 
@@ -147,11 +156,14 @@ print(draft_brief(example))
 
 # MAGIC %md
 # MAGIC ### Evaluation: the release gate
-# MAGIC - `key_numbers_exact` (code): the brief must contain the exact attainment, passenger share and fair share strings. Numbers are checked by code, never by an LLM.
-# MAGIC - `under_word_limit` (code): at most 160 words.
-# MAGIC - `grounded_and_actionable` and `professional_tone` (LLM judges): written guidelines, judged per brief.
+# MAGIC - `key_numbers_exact` (code): the brief contains the exact attainment, passenger share and fair share strings.
+# MAGIC - `no_invented_numbers` (code): every number in the brief appears in the certified facts. Catches invented thresholds like "the 90% line".
+# MAGIC - `under_word_limit` (code): at most 160 words (the prompt asks for 140, leaving margin).
+# MAGIC - `actionable` and `professional_tone` (LLM judges): specific written rules, with the facts visible to the judge.
 # MAGIC
-# MAGIC Release bar: 100% on `key_numbers_exact`, at least 90% on the rest.
+# MAGIC Numbers are checked by code, never by an LLM. The first judge version was too vague: it penalized the required headings and couldn't see the facts, so its scores measured the judge, not the brief. Read judge rationales before trusting judge scores.
+# MAGIC
+# MAGIC Release bar: 100% on the two number checks, at least 90% on the rest.
 
 # COMMAND ----------
 
@@ -169,7 +181,8 @@ eval_data = []
 for name in eval_accounts:
     f = get_account_facts(name)
     eval_data.append({
-        "inputs": {"account_name": name},
+        # The facts go in the inputs so the LLM judge can see what the brief was written from.
+        "inputs": {"account_name": name, "facts": f},
         "expectations": {"key_numbers": [f["contract_attainment"], f["passenger_share"], f["fair_share"]]},
     })
 
@@ -184,14 +197,43 @@ def under_word_limit(outputs) -> bool:
     return len(outputs.split()) <= 160
 
 
-scorers = [key_numbers_exact, under_word_limit]
+import re
+from mlflow.entities import Feedback
+
+NUM = re.compile(r"\d[\d,]*(?:\.\d+)?")
+
+
+def numbers_in(text: str) -> set:
+    text = re.sub(r"(?m)^\s*\d+[.)]\s", " ", text)  # ignore list numbering "1. "
+    return {n.replace(",", "") for n in NUM.findall(text)}
+
+
+@scorer
+def no_invented_numbers(inputs, outputs) -> Feedback:
+    """Grounding, checked by code: every number in the brief must appear in the certified facts."""
+    allowed = numbers_in(json.dumps(inputs["facts"]))
+    invented = sorted(numbers_in(outputs) - allowed)
+    return Feedback(value=not invented,
+                    rationale="All numbers come from the facts." if not invented
+                    else f"Numbers not in the facts: {', '.join(invented)}")
+
+
+scorers = [key_numbers_exact, no_invented_numbers, under_word_limit]
 try:
     scorers += [
-        Guidelines(name="grounded_and_actionable", guidelines=[
-            "The brief must not state any number that is not in the account facts.",
-            "The brief must include at least two concrete talking points for the account manager.",
+        # Judges get specific, testable rules that agree with the required format.
+        # Number grounding is checked by code above, so the judge focuses on what code can't check.
+        Guidelines(name="actionable", guidelines=[
+            "The request contains the account facts. The brief must not contradict them.",
+            "The Talking points section has at least two concrete suggestions the account manager could raise on a call, "
+            "each tied to something in the facts (a market, a gap, a trend or the contract).",
         ]),
-        Guidelines(name="professional_tone", guidelines="The brief is concise, professional and free of hype."),
+        Guidelines(name="professional_tone", guidelines=[
+            "The headings 'Where we stand', 'Watch-outs' and 'Talking points', bullet points and bold numbers are the required "
+            "format. Do not penalize them, and do not penalize factual status labels such as 'At risk', 'Watch' or 'On track'.",
+            "Fail only if the brief uses exaggerated or salesy language (for example 'amazing', 'huge win', 'crushing it'), "
+            "exclamation marks or emojis, or blames or criticizes the customer.",
+        ]),
     ]
 except Exception as e:
     print("LLM judges unavailable; running code scorers only:", str(e)[:150])
