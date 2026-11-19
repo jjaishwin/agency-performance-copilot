@@ -21,7 +21,7 @@ resources:
   jobs:
     copilot_pipeline:
       name: agency-performance-copilot-pipeline
-      description: Synthetic sources -> bronze -> silver -> gold -> governance -> metric views -> scorecards -> brief agent -> Genie deploy + benchmark gate -> monitoring dashboard
+      description: Synthetic sources -> bronze -> silver -> gold -> governance -> metric views -> scorecards -> brief agent -> Genie deploy + benchmark gate -> AI/BI dashboard
       max_concurrent_runs: 1
       tasks:
         - task_key: generate_data

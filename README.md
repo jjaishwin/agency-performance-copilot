@@ -21,7 +21,7 @@ Today those answers come from recurring manual reports and ad-hoc analyst reques
 Azure Databricks:
 Raw files ─► Bronze ─► Silver ─► Gold ─► Governance ─► Metric views ─┬─► Genie Agent, deployed as code, 15-benchmark release gate
  CSV + Excel  audit    DQ+SCD2   grains   UC security   one definition ├─► Brief agent (LLM tool + MLflow evaluation)
-                                                                      ├─► Monitoring dashboard (AI quality + data quality)
+                                                                      ├─► AI/BI dashboard: sales performance + AI and data quality
                                                                       ├─► Deal Desk app (what-if + Ask Genie, per-user security)
                                                                       ├─► Agent Bricks Supervisor (Genie + Knowledge Assistant + UC functions)
                                                                       └─► Fabric mirrored catalog ─► Direct Lake model ─┬─► Power BI report
@@ -98,7 +98,7 @@ notebooks/
   07_scorecards_and_deals.py      agency + account scorecards, contract scenarios
   08_brief_agent_mlflow.py        LLM brief agent, MLflow tracing + evaluation
   09_genie_agent_as_code.py       deploy Genie via API, run benchmarks, release gate
-  10_monitoring_dashboard.py      AI/BI monitoring dashboard via API
+  10_monitoring_dashboard.py      AI/BI dashboard via API (sales + monitoring pages)
   11_agent_bricks_prep.py         program docs, UC functions, routing eval for the Sales Copilot agent
   12_fabric_share.py              schema Fabric mirrors (no row filters) + OneLake parity check
 AZURE_BUILD_GUIDE.md              the full build on Azure Databricks + Fabric + Power Platform
@@ -125,4 +125,3 @@ docs/BUSINESS_CASE.md             time-saved estimate with stated assumptions
 | Automated OneLake security parity test | Compare per-region row counts between Unity Catalog and OneLake on every deploy |
 | Brief evaluation in CI | Add the MLflow evaluation of notebook 08 to the gate, next to the Genie benchmarks |
 | Usage and cost monitoring | Genie and app usage from system tables on the monitoring dashboard |
-| Service principal with OAuth | Replace the CI personal access token |

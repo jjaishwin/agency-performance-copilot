@@ -75,7 +75,7 @@ This guide builds the project on the Azure Databricks + Microsoft stack: **Azure
 ## Part 3 · Genie Agent
 
 1. Build it by hand once with `genie/GENIE_AGENT_SETUP.md`, so you know every setting.
-2. Then run **notebook 09** to deploy the same agent as code and run the 15-benchmark gate, and **notebook 10** for the monitoring dashboard.
+2. Then run **notebook 09** to deploy the same agent as code and run the 15-benchmark gate, and **notebook 10** for the AI/BI dashboard (sales performance + monitoring).
 3. **Share** the agent with your Northeast test user ("Can run"), and check their answers only cover Northeast.
 
 ## Part 4 · Agent Bricks: Knowledge Assistant and Supervisor Agent
