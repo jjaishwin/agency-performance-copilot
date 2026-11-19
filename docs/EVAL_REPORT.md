@@ -112,3 +112,8 @@ Every run of notebook 09 (by hand, from the bundle job or from CI) appends 15 ro
 
 Model: Direct Lake on OneLake, 14 measures, generated with semantic-link-labs on a Fabric F2 capacity; exported as 12 TMDL files.
 
+
+
+## Copilot Studio Program Rules Assistant (Nov 19, 2026)
+
+Grounded only on the four program documents (web search off). 3/3 test questions pass in the Copilot Studio test chat, including the guardrail: asked for Zhang PLC's attainment, it declines to give a number and points to the governed tools (Deal Desk, Genie). Details in `microsoft/COPILOT_STUDIO_STEPS.md`. Not run as an automated eval: three manual checks only.

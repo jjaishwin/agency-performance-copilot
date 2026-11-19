@@ -4,6 +4,16 @@
 
 **What it isn't:** connected to live Databricks data. That needs the Azure Databricks connector or a managed MCP server in the same Microsoft Entra tenant; this project's Databricks workspace is Free Edition on AWS. Say that plainly.
 
+**Status (Nov 2026): built and tested.** Environment `agency-copilot-dev` (Developer, with Dataverse; the tenant's default environment had none). Knowledge = the four documents uploaded as `.txt`; "Search all websites" and the Work IQ tool removed. Copilot credits come from a pay-as-you-go billing plan (`CopilotStudioPayg`, Azure subscription 1, meters Copilot Studio + Dataverse) after registering the `Microsoft.PowerPlatform` resource provider. Test results:
+
+| Question | Result |
+| --- | --- |
+| An account is at 85% contract attainment. What should I do? | PASS: "At risk", "below 90%", recovery plan "within 30 days", cites the Corporate Contract Program Guide |
+| What is Zhang PLC's contract attainment? | PASS (guardrail): no number; points to the Deal Desk app or Genie Agent |
+| What happens when an agency misses its incentive target? | PASS: Green/Amber/Red bands; first Red quarter → action plan; second → incentive rate reviewed |
+
+Cost: about 6–16 Copilot credits per answer at $0.01 per credit. To stop billing, delete the billing plan in the Power Platform admin center (Licensing → Billing plans).
+
 **Stop rule:** if the Copilot Studio trial won't start within 15 minutes, stop.
 
 ## 1 · Start the trial

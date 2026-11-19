@@ -59,7 +59,7 @@ CI/CD (written): Declarative Automation Bundle (Lakeflow job + app) · GitHub Ac
 | Notebooks 01–10, Deal Desk app | Built and run on Databricks Free Edition |
 | Notebook 11 (documents, UC functions, routing set), 13 (Sales Copilot agent) | Built and run on Free Edition; routing 11/12 (92%) |
 | Notebook 14 (Lakeflow job created from code) | Built for Free Edition; first run pending |
-| Copilot Studio Program Rules Assistant (`microsoft/COPILOT_STUDIO_STEPS.md`) | Steps written; first build pending (trial: test pane only) |
+| Copilot Studio Program Rules Assistant (`microsoft/COPILOT_STUDIO_STEPS.md`) | **Built and tested** in a Developer environment billed pay-as-you-go to Azure: grounded only on the 4 program documents (web search and other tools removed). 3/3 test questions pass, including the guardrail (asked for Zhang PLC's attainment, it gives no number and points to Deal Desk / Genie). About 6–16 Copilot credits per answer ($0.01 each) |
 | Fabric lakehouse + Direct Lake model (`fabric/01_load_gold_to_lakehouse.ipynb`) | Built and run on a Fabric F2 capacity (Azure): 10 tables in OneLake, Direct Lake on OneLake model with 14 DAX measures, DAX = SQL parity PASS (largest difference 1.6e-13), 12 TMDL files |
 | Agent Bricks Supervisor and Knowledge Assistant | Designed; needs Azure Databricks Premium |
 | Notebook 12 (`fabric_share` for a mirrored catalog), Copilot Studio connected to Genie, Power Automate | Designed; needs Azure Databricks and Power Platform |
