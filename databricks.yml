@@ -82,6 +82,11 @@ resources:
               warehouse_id: "${var.warehouse_id}"
               mode: deploy_and_test
               min_pass_rate: "${var.min_pass_rate}"
+        - task_key: sales_copilot_eval
+          depends_on: [{task_key: genie_release_gate}, {task_key: agent_bricks_prep}]
+          notebook_task:
+            notebook_path: ./notebooks/13_sales_copilot_agent.py
+            base_parameters: {catalog: "${var.catalog}"}
         - task_key: monitoring_dashboard
           depends_on: [{task_key: genie_release_gate}]
           run_if: ALL_DONE   # refresh the dashboard even when the gate fails, so the failure is visible

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 11 · Agent Bricks: everything the Supervisor Agent needs
 # MAGIC
-# MAGIC **Azure Databricks Premium only.** Agent Bricks isn't available on Free Edition.
+# MAGIC **Runs on Free Edition:** the documents, the three functions and the routing set. **Needs Azure Databricks Premium:** the Agent Bricks Supervisor and Knowledge Assistant themselves. Notebook 13 builds the same supervisor pattern in code, so it runs on Free Edition.
 # MAGIC
 # MAGIC The Supervisor Agent ("Sales Copilot") routes each question to the right specialist:
 # MAGIC

@@ -1,6 +1,8 @@
 # Agency Performance Copilot
 
-**Governed AI and analytics for airline corporate and agency sales, on the Azure Databricks + Microsoft stack: Azure Databricks (Unity Catalog, Genie, Agent Bricks, Apps) as the foundation; Fabric, Power BI, Power Automate and Copilot Studio where account managers work.**
+**Governed AI and analytics for airline corporate and agency sales. Built and running on Databricks (Unity Catalog, metric views, Genie, MLflow, Apps); designed for Azure Databricks with Fabric, Power BI and Copilot Studio where account managers work.**
+
+**Status:** everything on Databricks runs today on Databricks Free Edition. The Fabric and Power BI Direct Lake slice is built as code (notebook in `fabric/`). Agent Bricks, Copilot Studio and Power Automate are designed with setup steps written, not deployed. See [What runs today](#what-runs-today).
 
 > All data in this project is synthetic and generated for demonstration. Company, agency and person names are invented. Competitor carriers are fictional (`XA`, `XB`). No American Airlines data is used.
 
@@ -18,16 +20,15 @@ Today those answers come from recurring manual reports and ad-hoc analyst reques
 ## What this project does
 
 ```
-Azure Databricks:
+Databricks (Free Edition today; Azure Databricks in production):
 Raw files ─► Bronze ─► Silver ─► Gold ─► Governance ─► Metric views ─┬─► Genie Agent, deployed as code, 15-benchmark release gate
  CSV + Excel  audit    DQ+SCD2   grains   UC security   one definition ├─► Brief agent (LLM tool + MLflow evaluation)
                                                                       ├─► AI/BI dashboard: sales performance + AI and data quality
                                                                       ├─► Deal Desk app (what-if + Ask Genie, per-user security)
-                                                                      ├─► Agent Bricks Supervisor (Genie + Knowledge Assistant + UC functions)
-                                                                      └─► Fabric mirrored catalog ─► Direct Lake model ─┬─► Power BI report
-                                                                                                                ├─► Power Automate → Teams
-                                                                                                                └─► Copilot Studio agent in Teams
-CI/CD: Declarative Automation Bundle (Lakeflow job 01→12 + app) · GitHub Actions · Genie gate fails the build · Fabric model in Git as TMDL
+                                                                      ├─► Sales Copilot agent: routes to Genie, UC functions, program docs (notebook 13)
+                                                                      └─► Fabric: OneLake lakehouse ─► Direct Lake model (DAX, parity-checked, TMDL) ─► Power BI
+                                                                          designed: mirrored catalog (no copy) · Power Automate → Teams · Copilot Studio in Teams
+CI/CD (written): Declarative Automation Bundle (Lakeflow job + app) · GitHub Actions · Genie gate fails the build
 ```
 
 | Layer | What's built | Why it matters |
@@ -41,13 +42,26 @@ CI/CD: Declarative Automation Bundle (Lakeflow job 01→12 + app) · GitHub Acti
 | **Genie Agent** | Curated instructions, SQL expressions, example queries, entity matching, 15 core benchmarks + 10 advanced-SQL benchmarks | Plain-English answers for account managers, accuracy measured |
 | **Genie as code + release gate** | Agent spec built from the guide, deployed with the Genie Management API; benchmarks run through the Conversation API, results logged, run fails below 90% | A Genie change is a reviewed pull request that can't make accuracy worse quietly |
 | **Monitoring** | AI/BI dashboard created by API: accuracy per run, latest failures, data-quality failures, scorecard health | One place to answer "can we trust it?" |
-| **Agent Bricks** | "Sales Copilot", prototyped as a Supervisor Agent (legacy since Oct 2026; the production path is the Agent Bricks CLI), routing between the Genie Agent, a Knowledge Assistant over program documents, and governed UC functions (account snapshot, contract what-if, agency status); 12-question routing evaluation | Multi-agent system built on the platform American uses, with the user's permissions end to end |
+| **Sales Copilot agent** | Tool-calling agent (notebook 13) that routes each question to the Genie Agent, governed UC functions (account snapshot, contract what-if, agency status) or program documents; MLflow tracing; routing accuracy measured on 12 questions. Same supervisor pattern as an Agent Bricks Supervisor Agent, built in code so it runs on Free Edition | One assistant for account managers, with every number coming from a governed tool |
 | **Brief agent** | Tool-calling LLM drafts pre-call briefs from governed facts; MLflow 3 tracing and evaluation | Numbers checked by code, tone and grounding by LLM judges |
-| **Microsoft layer** | Fabric Mirrored Azure Databricks Catalog (no copy) of a `fabric_share` schema, OneLake security re-applying region access, Direct Lake semantic model (DAX matches the gold tables to 4 decimals), Power BI report with deal what-if, Power Automate monthly scorecard to Teams, Copilot Studio agent in Teams, model in Git as TMDL | Meets account managers in Power BI, Teams and Outlook |
+| **Microsoft layer** | **Built as code:** gold tables in a OneLake lakehouse, a Direct Lake semantic model generated with semantic-link-labs, the metric views re-implemented in DAX with a parity check against SQL, TMDL export, Power BI report steps. **Designed:** mirrored Unity Catalog (no copy), OneLake security by region, Power Automate to Teams, Copilot Studio agent | Meets account managers in Power BI and Teams, with the same numbers as Genie |
 | **Deal Desk app** | Databricks App: contract what-if and Ask Genie; runs as the signed-in user so the row filter applies; per-user caching | The deal-modeling step of the corporate contract lifecycle |
-| **CI/CD** | Declarative Automation Bundle, formerly Databricks Asset Bundle (Lakeflow job + app), GitHub Actions: spec freshness, compile, deploy, Genie gate | One-command deploy; quality gates on every change |
+| **CI/CD** (written, not yet run against a workspace) | Declarative Automation Bundle, formerly Databricks Asset Bundle (Lakeflow job + app), GitHub Actions: spec freshness, compile, deploy, Genie gate | One-command deploy; quality gates on every change |
 
-![Architecture](docs/img/architecture.png)
+![Target architecture](docs/img/architecture.png)
+
+*Target architecture on Azure. What runs today is listed below.*
+
+## What runs today
+
+| Piece | Status |
+|---|---|
+| Notebooks 01–10, Deal Desk app | Built and run on Databricks Free Edition |
+| Notebook 11 (documents, UC functions, routing set), 13 (Sales Copilot agent) | Built for Free Edition; first run pending |
+| Fabric lakehouse + Direct Lake model (`fabric/01_load_gold_to_lakehouse.ipynb`) | Built as code; first run pending (needs a Fabric trial capacity) |
+| Agent Bricks Supervisor and Knowledge Assistant | Designed; needs Azure Databricks Premium |
+| Notebook 12 (`fabric_share` for a mirrored catalog), Copilot Studio, Power Automate | Designed; needs Azure Databricks and Power Platform |
+| Bundle deploy and GitHub Actions | Written; not yet run against a workspace |
 
 ## Results
 
@@ -59,7 +73,7 @@ CI/CD: Declarative Automation Bundle (Lakeflow job 01→12 + app) · GitHub Acti
 | Agencies with SCD2 history | 8 |
 | Agency scorecard (latest quarter) | 104 Green · 28 Amber · 68 Red |
 | Managed accounts at risk (attainment < 90%) | 69 of 200 |
-| Brief agent: key numbers exact / under word limit | **[X]% / [Y]%** on 20 evaluation accounts |
+| Brief agent (20 accounts, `databricks-gpt-oss-120b`) | Key numbers exact **100%** · no invented numbers **95%** · word limit, actionable, tone **100%** (run 4) |
 | Genie benchmark accuracy | **9/15 first run → 14/15 after root-cause fixes** (gate 90%); advanced SQL tier 5/10, tracked, not gating |
 
 See [`docs/EVAL_REPORT.md`](docs/EVAL_REPORT.md) for the iteration log.
@@ -77,10 +91,10 @@ See [`docs/EVAL_REPORT.md`](docs/EVAL_REPORT.md) for the iteration log.
 
 ## How to run it
 
-1. **Azure Databricks Premium** in the same Entra tenant as Fabric and Power Platform: follow [`AZURE_BUILD_GUIDE.md`](AZURE_BUILD_GUIDE.md). Notebooks 01–10 also run on Databricks Free Edition.
+1. **Databricks Free Edition** runs notebooks 01–11 and 13 and the app. For the full Azure build (Agent Bricks, mirrored catalog, Copilot Studio), follow [`AZURE_BUILD_GUIDE.md`](AZURE_BUILD_GUIDE.md).
 2. **Workspace → Create → Git folder** with this repo's URL, then run notebooks 01 → 10 in order, or deploy everything with `databricks bundle deploy --var warehouse_id=<id>` and `databricks bundle run copilot_pipeline`.
 3. Learn the Genie Agent by building it by hand with [`genie/GENIE_AGENT_SETUP.md`](genie/GENIE_AGENT_SETUP.md); notebook 09 deploys the same agent as code.
-4. Build the Microsoft layer with [`microsoft/MICROSOFT_LAYER_GUIDE.md`](microsoft/MICROSOFT_LAYER_GUIDE.md).
+4. Fabric and Power BI: [`microsoft/FABRIC_POWERBI_STEPS.md`](microsoft/FABRIC_POWERBI_STEPS.md). The rest of the Microsoft layer: [`microsoft/MICROSOFT_LAYER_GUIDE.md`](microsoft/MICROSOFT_LAYER_GUIDE.md).
 5. Deploy the app with [`app/APP_SETUP.md`](app/APP_SETUP.md).
 
 Full walkthrough: [`AZURE_BUILD_GUIDE.md`](AZURE_BUILD_GUIDE.md). Public demo (no sign-in, snapshot data): [`public_demo/`](public_demo/).
@@ -101,12 +115,14 @@ notebooks/
   10_monitoring_dashboard.py      AI/BI dashboard via API (sales + monitoring pages)
   11_agent_bricks_prep.py         program docs, UC functions, routing eval for the Sales Copilot agent
   12_fabric_share.py              schema Fabric mirrors (no row filters) + OneLake parity check
+  13_sales_copilot_agent.py       tool-calling Sales Copilot agent + routing evaluation
 AZURE_BUILD_GUIDE.md              the full build on Azure Databricks + Fabric + Power Platform
 genie/GENIE_AGENT_SETUP.md        agent configuration + 15 core and 10 advanced benchmarks (source of truth)
 genie/build_agent_spec.py         builds agent_spec.json (serialized_space) from the guide
 dashboards/monitoring.lvdash.json dashboard definition
 data/gold/*.parquet               gold tables exported for Fabric
-fabric/                           Lakehouse loader notebook; workspace/ is written by Fabric Git integration (TMDL)
+fabric/                           OneLake load + Direct Lake model as code + DAX/SQL parity + TMDL export
+microsoft/FABRIC_POWERBI_STEPS.md Fabric trial, lakehouse, report pages, fallback
 microsoft/powerbi/measures.dax    Direct Lake measures
 databricks.yml                    Declarative Automation Bundle (formerly Asset Bundle): Lakeflow job + Deal Desk app
 .github/workflows/ci.yml          CI/CD
@@ -117,6 +133,7 @@ docs/METRIC_DICTIONARY.md         every certified metric, defined once
 docs/EVAL_REPORT.md               benchmark results and iteration log
 docs/ADVANCED_SQL.md              advanced SQL patterns: pipeline and Genie advanced tier
 docs/BUSINESS_CASE.md             time-saved estimate with stated assumptions
+docs/ENABLEMENT_PLAN.md           pilot, adoption, success measures, feedback loop
 ```
 
 ## What's next
