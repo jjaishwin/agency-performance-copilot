@@ -94,7 +94,7 @@ SYSTEM_PROMPT = """You write pre-call briefs for an airline's corporate account 
 Rules:
 - Use ONLY the facts provided in JSON. Never invent or recalculate numbers.
 - Do not mention thresholds, benchmarks, targets or dates that are not in the facts (no "90% line", no "2026").
-- Quote numbers exactly as written in the facts (for example "87.3%" or "$1,234,567").
+- Quote numbers exactly as written in the facts (for example "87.3%" or "$1,234,567"), every time you mention them.
 - At most 140 words. Three short sections with these headings: Where we stand, Watch-outs, Talking points.
 - Talking points are 2 or 3 concrete, polite suggestions for the call.
 - Internal use only. Do not include traveler-level details."""
@@ -204,8 +204,9 @@ NUM = re.compile(r"\d[\d,]*(?:\.\d+)?")
 
 
 def numbers_in(text: str) -> set:
+    """Numeric values in the text, so 110 and 110.0 are the same number. Formatting is checked by key_numbers_exact."""
     text = re.sub(r"(?m)^\s*\d+[.)]\s", " ", text)  # ignore list numbering "1. "
-    return {n.replace(",", "") for n in NUM.findall(text)}
+    return {round(float(n.replace(",", "")), 4) for n in NUM.findall(text)}
 
 
 @scorer
@@ -215,7 +216,7 @@ def no_invented_numbers(inputs, outputs) -> Feedback:
     invented = sorted(numbers_in(outputs) - allowed)
     return Feedback(value=not invented,
                     rationale="All numbers come from the facts." if not invented
-                    else f"Numbers not in the facts: {', '.join(invented)}")
+                    else f"Numbers not in the facts: {', '.join(f'{n:g}' for n in invented)}")
 
 
 scorers = [key_numbers_exact, no_invented_numbers, under_word_limit]
