@@ -2,4 +2,5 @@ databricks-sql-connector
 databricks-sdk
 pandas
 pyarrow
-streamlit
+# width="stretch" on tables needs a recent Streamlit; the Apps runtime preinstalls an older one
+streamlit>=1.50
