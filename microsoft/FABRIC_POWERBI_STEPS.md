@@ -56,6 +56,20 @@ Workspace → open the semantic model **Agency Performance (Direct Lake)** → *
 
 Save as **Agency Performance**. Move the slider from 0 to 15 for Zhang PLC: scenario attainment drops and the passenger gap grows, the same story as the Deal Desk app.
 
+**Check values** (computed from the gold snapshot in pandas, independently of DAX). If a visual disagrees, a filter is missing.
+
+| Where | Expected |
+| --- | --- |
+| Page 1 cards | Share gap +5.4 pts · At-risk managed accounts 69 · AA revenue $39.0M |
+| Region bars | Central 2.4 · West 5.7 · Northeast 6.6 · Southeast 7.2 |
+| Account manager bars (lowest) | Allison Hill 85.5% · Gabrielle Davis 92.6% · Angie Henderson 95.5% |
+| Table (lowest) | Zhang PLC 27.2% · Turner, Schneider and Johnson 29.4% · Garcia, Martin and Jenkins 42.6% |
+| Page 2, Zhang PLC | +0: 35.3% / gap 104 · +5: 32.1% / 120 · +10: 29.5% / 137 · +15: 27.2% / 153 · +20: 25.3% / 169 |
+
+At +15 the scenario equals the current deal (27.2%) because Zhang's contract is fair share + 15. That is a built-in check that the what-if math and the contract math agree.
+
+**Formatting as code.** `fabric/02_polish_report.py` (run as a Fabric notebook) reads the report's PBIR definition through the Fabric REST API, sets 1280×720 pages, the grid layout, titles, column names and red/amber/green rules, saves `Agency Performance (backup)`, then writes the result back with `updateDefinition`. Clicking through the web format panes doesn't scale; a definition edit is reviewable and repeatable.
+
 ## 4 · Optional: TMDL in GitHub (15 min)
 
 Workspace settings → **Git integration** → GitHub → connect `jjaishwin/agency-performance-copilot`, folder `fabric/workspace`, branch `main` → Commit. The semantic model is stored as TMDL files; each measure change becomes a reviewable diff.

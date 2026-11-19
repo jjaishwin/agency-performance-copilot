@@ -2,7 +2,7 @@
 
 **Governed AI and analytics for airline corporate and agency sales. Built and running on Databricks (Unity Catalog, metric views, Genie, MLflow, Apps); designed for Azure Databricks with Fabric, Power BI and Copilot Studio where account managers work.**
 
-**Status:** everything on Databricks runs today on Databricks Free Edition. The Fabric and Power BI Direct Lake slice is built as code (notebook in `fabric/`). Agent Bricks, Copilot Studio and Power Automate are designed with setup steps written, not deployed. See [What runs today](#what-runs-today).
+**Status:** everything on Databricks runs today on Databricks Free Edition. The Fabric slice runs on a Fabric F2 capacity: OneLake lakehouse, a Direct Lake on OneLake semantic model built from code, DAX/SQL parity checked, TMDL exported. Agent Bricks, Copilot Studio connected to Genie, and Power Automate are designed with setup steps written, not deployed. See [What runs today](#what-runs-today).
 
 > All data in this project is synthetic and generated for demonstration. Company, agency and person names are invented. Competitor carriers are fictional (`XA`, `XB`). No American Airlines data is used.
 
@@ -60,7 +60,7 @@ CI/CD (written): Declarative Automation Bundle (Lakeflow job + app) · GitHub Ac
 | Notebook 11 (documents, UC functions, routing set), 13 (Sales Copilot agent) | Built and run on Free Edition; routing 11/12 (92%) |
 | Notebook 14 (Lakeflow job created from code) | Built for Free Edition; first run pending |
 | Copilot Studio Program Rules Assistant (`microsoft/COPILOT_STUDIO_STEPS.md`) | Steps written; first build pending (trial: test pane only) |
-| Fabric lakehouse + Direct Lake model (`fabric/01_load_gold_to_lakehouse.ipynb`) | Built as code; first run pending (needs a Fabric trial capacity) |
+| Fabric lakehouse + Direct Lake model (`fabric/01_load_gold_to_lakehouse.ipynb`) | Built and run on a Fabric F2 capacity (Azure): 10 tables in OneLake, Direct Lake on OneLake model with 14 DAX measures, DAX = SQL parity PASS (largest difference 1.6e-13), 12 TMDL files |
 | Agent Bricks Supervisor and Knowledge Assistant | Designed; needs Azure Databricks Premium |
 | Notebook 12 (`fabric_share` for a mirrored catalog), Copilot Studio connected to Genie, Power Automate | Designed; needs Azure Databricks and Power Platform |
 | Bundle deploy and GitHub Actions | Written; not yet run against a workspace |

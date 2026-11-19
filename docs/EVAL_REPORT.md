@@ -94,3 +94,21 @@ Every run of notebook 09 (by hand, from the bundle job or from CI) appends 15 ro
 | Date | Spec version | Passed | What changed |
 |---|---|---|---|
 | [date] | [hash] | [ ]/15 | First automated run |
+
+---
+
+## Sales Copilot routing (notebook 13)
+
+| Run | Date | Model | Exact routing | Covered | Notes |
+|---|---|---|---|---|---|
+| 1 | 2026-11-19 | databricks-gpt-oss-120b | **11/12 (92%)** | 11/12 (92%) | Two-part demo question correctly used `account_snapshot` + `search_program_docs` |
+
+## Power BI parity (Fabric notebook)
+
+| Check | Result |
+|---|---|
+| Share vs fair share by region, 2026 (DAX vs SQL) | PASS, 4 rows, largest difference 1.6e-13 |
+| Contract attainment by account manager, managed, 2026 | PASS, 12 rows, largest difference 3.3e-16 |
+
+Model: Direct Lake on OneLake, 14 measures, generated with semantic-link-labs on a Fabric F2 capacity; exported as 12 TMDL files.
+
