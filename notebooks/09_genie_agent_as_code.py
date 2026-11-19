@@ -49,6 +49,7 @@ raw = raw.replace("{{ACCOUNT_X}}", account_x.replace("'", "''"))
 spec = json.loads(raw)
 space = spec["serialized_space"]
 labels = spec["meta"]["benchmark_labels"]
+tiers = spec["meta"].get("benchmark_tiers", {})  # core = release gate; advanced = tracked, not gating
 spec_version = hashlib.sha256(json.dumps(space, sort_keys=True).encode()).hexdigest()[:12]
 print(f"Spec version {spec_version} · benchmark 15 account: {account_x}")
 
@@ -230,9 +231,10 @@ if MODE in ("deploy_and_test", "test"):
         except Exception as e:
             g, status, detail = {"sql": None, "latency_s": None, "rows": None}, "ERROR", str(e)[:300]
         label = labels.get(q["id"], f"B{n + 1}")
+        tier = tiers.get(q["id"], "core")
         print(f"{label:>4} {status:<6} {g.get('latency_s')}s  {question[:70]}  [{detail[:80]}]")
         results.append({"run_id": run_id, "run_ts": run_ts, "spec_version": spec_version, "space_id": space_id,
-                        "benchmark": label, "question": question, "status": status, "detail": detail,
+                        "benchmark": label, "tier": tier, "question": question, "status": status, "detail": detail,
                         "expected_rows": len(gt), "genie_rows": None if g.get("rows") is None else len(g["rows"]),
                         "genie_sql": g.get("sql"), "latency_s": g.get("latency_s")})
         if n < len(questions) - 1:
@@ -247,18 +249,23 @@ if MODE in ("deploy_and_test", "test"):
 if results:
     schema = ("run_id STRING, run_ts TIMESTAMP, spec_version STRING, space_id STRING, benchmark STRING, "
               "question STRING, status STRING, detail STRING, expected_rows INT, genie_rows INT, "
-              "genie_sql STRING, latency_s DOUBLE")
+              "genie_sql STRING, latency_s DOUBLE, tier STRING")  # tier last: older runs gain it as NULL
     cols = [c.split()[0] for c in schema.split(", ")]
     df = spark.createDataFrame([tuple(r[c] for c in cols) for r in results], schema)
     df.write.mode("append").option("mergeSchema", "true").saveAsTable(f"{GOLD}.genie_benchmark_runs")
     spark.sql(f"COMMENT ON TABLE {GOLD}.genie_benchmark_runs IS "
               "'One row per Genie benchmark question per run. Written by notebook 09. Release gate history.'")
 
-    passed = sum(r["status"] == "PASS" for r in results)
-    rate = passed / len(results)
-    print(f"\nBenchmark accuracy: {passed}/{len(results)} = {rate:.0%} (gate {MIN_PASS:.0%}) · spec {spec_version}")
-    display(df.select("benchmark", "status", "detail", "latency_s", "genie_sql"))
+    core = [r for r in results if r["tier"] == "core"]
+    adv = [r for r in results if r["tier"] == "advanced"]
+    passed = sum(r["status"] == "PASS" for r in core)
+    rate = passed / len(core)
+    print(f"\nCore benchmarks (release gate): {passed}/{len(core)} = {rate:.0%} (gate {MIN_PASS:.0%}) · spec {spec_version}")
+    if adv:
+        adv_passed = sum(r["status"] == "PASS" for r in adv)
+        print(f"Advanced SQL tier (tracked, not gating): {adv_passed}/{len(adv)} = {adv_passed / len(adv):.0%}")
+    display(df.select("benchmark", "tier", "status", "detail", "latency_s", "genie_sql"))
     if rate < MIN_PASS:
-        raise Exception(f"Release gate failed: {passed}/{len(results)} benchmarks passed, below {MIN_PASS:.0%}. "
+        raise Exception(f"Release gate failed: {passed}/{len(core)} core benchmarks passed, below {MIN_PASS:.0%}. "
                         "Fix the root cause (comments, expressions, instructions), rebuild the spec and re-run.")
     print("Release gate passed.")

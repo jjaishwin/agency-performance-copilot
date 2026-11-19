@@ -38,7 +38,7 @@ CI/CD: Declarative Automation Bundle (Lakeflow job 01→12 + app) · GitHub Acti
 | **Scorecards and deals** | Quarterly agency scorecard (Green/Amber/Red), YTD account scorecard with risk status and talking points, contract scenarios at QSI + 0/5/10/15 | Replaces recurring manual reports; supports "modeling a good deal" |
 | **Governance** | Business-language comments, tags, row filter by region, PNR column mask, lineage | Security in the data, inherited by every tool |
 | **Semantic layer** | Unity Catalog metric views: passenger share, fair share (QSI), share gap, contract attainment, NDC share, incentive ROI | Each metric defined once; Genie, Power BI and the app agree |
-| **Genie Agent** | Curated instructions, SQL expressions, example queries, entity matching, 15 benchmarks | Plain-English answers for account managers, accuracy measured |
+| **Genie Agent** | Curated instructions, SQL expressions, example queries, entity matching, 15 core benchmarks + 10 advanced-SQL benchmarks | Plain-English answers for account managers, accuracy measured |
 | **Genie as code + release gate** | Agent spec built from the guide, deployed with the Genie Management API; benchmarks run through the Conversation API, results logged, run fails below 90% | A Genie change is a reviewed pull request that can't make accuracy worse quietly |
 | **Monitoring** | AI/BI dashboard created by API: accuracy per run, latest failures, data-quality failures, scorecard health | One place to answer "can we trust it?" |
 | **Agent Bricks** | "Sales Copilot", prototyped as a Supervisor Agent (legacy since Oct 2026; the production path is the Agent Bricks CLI), routing between the Genie Agent, a Knowledge Assistant over program documents, and governed UC functions (account snapshot, contract what-if, agency status); 12-question routing evaluation | Multi-agent system built on the platform American uses, with the user's permissions end to end |
@@ -60,7 +60,7 @@ CI/CD: Declarative Automation Bundle (Lakeflow job 01→12 + app) · GitHub Acti
 | Agency scorecard (latest quarter) | 104 Green · 28 Amber · 68 Red |
 | Managed accounts at risk (attainment < 90%) | 69 of 200 |
 | Brief agent: key numbers exact / under word limit | **[X]% / [Y]%** on 20 evaluation accounts |
-| Genie benchmark accuracy | **[X]/15 first run → [Y]/15 after root-cause fixes** |
+| Genie benchmark accuracy | **9/15 first run → [Y]/15 after root-cause fixes**; advanced SQL tier [ ]/10 (tracked, not gating) |
 
 See [`docs/EVAL_REPORT.md`](docs/EVAL_REPORT.md) for the iteration log.
 
@@ -72,7 +72,7 @@ See [`docs/EVAL_REPORT.md`](docs/EVAL_REPORT.md) for the iteration log.
 4. **Low-QSI exclusion.** Markets where fair share is under 5% are excluded from "QSI + X" contract targets.
 5. **Security at the data layer.** Row filters and masks live in Unity Catalog, so Genie, Power BI, the flow, the agent and the app can only see what their identity is allowed to see.
 6. **The LLM never does arithmetic.** The brief agent receives pre-computed, formatted facts from a tool, and a code-based scorer checks that every number in the brief matches.
-7. **Benchmarks as a release gate.** Any change to tables, instructions or expressions re-runs all 15 benchmarks.
+7. **Benchmarks as a release gate.** Any change to tables, instructions or expressions re-runs all 15 core benchmarks; an advanced tier (window functions, gaps and islands, anti-joins, pivots) is tracked separately. See `docs/ADVANCED_SQL.md`.
 8. **Microsoft-first delivery.** Databricks is the governed foundation; account managers use the results where they already work.
 
 ## How to run it
@@ -102,7 +102,7 @@ notebooks/
   11_agent_bricks_prep.py         program docs, UC functions, routing eval for the Sales Copilot agent
   12_fabric_share.py              schema Fabric mirrors (no row filters) + OneLake parity check
 AZURE_BUILD_GUIDE.md              the full build on Azure Databricks + Fabric + Power Platform
-genie/GENIE_AGENT_SETUP.md        agent configuration + 15 benchmarks (source of truth)
+genie/GENIE_AGENT_SETUP.md        agent configuration + 15 core and 10 advanced benchmarks (source of truth)
 genie/build_agent_spec.py         builds agent_spec.json (serialized_space) from the guide
 dashboards/monitoring.lvdash.json dashboard definition
 data/gold/*.parquet               gold tables exported for Fabric
@@ -115,6 +115,7 @@ app/                              Deal Desk: Databricks App (Streamlit)
 docs/AGENT_CARD.md                purpose, data, limits, evaluation, owner (Genie + brief agent)
 docs/METRIC_DICTIONARY.md         every certified metric, defined once
 docs/EVAL_REPORT.md               benchmark results and iteration log
+docs/ADVANCED_SQL.md              advanced SQL patterns: pipeline and Genie advanced tier
 docs/BUSINESS_CASE.md             time-saved estimate with stated assumptions
 ```
 

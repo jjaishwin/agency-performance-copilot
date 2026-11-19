@@ -334,6 +334,161 @@ ORDER BY total_pax DESC
 LIMIT 5
 ```
 
+### Advanced tier (tracked, not gating)
+
+These test the SQL patterns analysts get asked about: window functions, top-N per group, running totals, gaps and islands, anti-joins, medians and pivots. Notebook 09 reports them as a separate score. They don't block a release: they show where Genie's limits are and where an analyst still writes the SQL.
+
+### A1. Show AA passenger share by region for each month from February to October 2026, with the change in percentage points from the previous month.
+```sql
+WITH m AS (
+  SELECT region, month, SUM(aa_pax) / SUM(total_pax) AS passenger_share
+  FROM workspace.gold.account_market_month
+  WHERE month >= DATE'2026-01-01'
+  GROUP BY region, month
+)
+SELECT region, month,
+       (passenger_share - LAG(passenger_share) OVER (PARTITION BY region ORDER BY month)) * 100 AS change_pts
+FROM m
+QUALIFY month >= DATE'2026-02-01'
+ORDER BY region, month
+```
+
+### A2. For each account manager, which managed account has the lowest contract attainment this year?
+```sql
+WITH a AS (
+  SELECT account_manager, account_name,
+         SUM(CASE WHEN qsi_eligible THEN aa_pax END)
+           / SUM(CASE WHEN qsi_eligible THEN target_share * total_pax END) AS contract_attainment
+  FROM workspace.gold.account_market_month
+  WHERE segment = 'Managed' AND month >= DATE'2026-01-01'
+  GROUP BY account_manager, account_name
+)
+SELECT account_manager, account_name, contract_attainment
+FROM a
+QUALIFY ROW_NUMBER() OVER (PARTITION BY account_manager ORDER BY contract_attainment ASC) = 1
+ORDER BY account_manager
+```
+
+### A3. What are the top 3 markets by AA revenue in each region this year?
+```sql
+WITH r AS (
+  SELECT region, market_name, SUM(aa_revenue) AS aa_revenue
+  FROM workspace.gold.account_market_month
+  WHERE month >= DATE'2026-01-01'
+  GROUP BY region, market_name
+)
+SELECT region, market_name, aa_revenue
+FROM r
+QUALIFY ROW_NUMBER() OVER (PARTITION BY region ORDER BY aa_revenue DESC) <= 3
+ORDER BY region, aa_revenue DESC
+```
+
+### A4. What is the smallest number of accounts that together make up at least 80% of AA revenue this year?
+```sql
+WITH a AS (
+  SELECT account_id, SUM(aa_revenue) AS aa_revenue
+  FROM workspace.gold.account_market_month
+  WHERE month >= DATE'2026-01-01'
+  GROUP BY account_id
+),
+c AS (
+  SELECT ROW_NUMBER() OVER (ORDER BY aa_revenue DESC) AS accounts,
+         SUM(aa_revenue) OVER (ORDER BY aa_revenue DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+           / SUM(aa_revenue) OVER () AS cumulative_share
+  FROM a
+)
+SELECT MIN(accounts) AS accounts_for_80_pct FROM c WHERE cumulative_share >= 0.8
+```
+
+### A5. Which markets were below AA's fair share for at least 3 consecutive months in 2026?
+```sql
+WITH m AS (
+  SELECT market_name, month,
+         SUM(aa_pax) < SUM(qsi_share * total_pax) AS below
+  FROM workspace.gold.account_market_month
+  WHERE month >= DATE'2026-01-01'
+  GROUP BY market_name, month
+),
+g AS (
+  SELECT market_name, month, below,
+         ROW_NUMBER() OVER (PARTITION BY market_name ORDER BY month)
+       - ROW_NUMBER() OVER (PARTITION BY market_name, below ORDER BY month) AS island
+  FROM m
+)
+SELECT DISTINCT market_name
+FROM g
+WHERE below
+GROUP BY market_name, island
+HAVING COUNT(*) >= 3
+ORDER BY market_name
+```
+
+### A6. For April to October 2026, what was the rolling 3-month total of AA revenue (the month plus the two months before it)?
+```sql
+WITH m AS (
+  SELECT month, SUM(aa_revenue) AS aa_revenue
+  FROM workspace.gold.account_market_month
+  WHERE month >= DATE'2026-01-01'
+  GROUP BY month
+)
+SELECT month,
+       SUM(aa_revenue) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS rolling_3m_aa_revenue
+FROM m
+QUALIFY month >= DATE'2026-04-01'
+ORDER BY month
+```
+
+### A7. Which agencies had AA revenue in 2025 but none so far in 2026?
+```sql
+SELECT DISTINCT a.agency_name
+FROM workspace.gold.agency_month a
+WHERE a.month BETWEEN DATE'2025-01-01' AND DATE'2025-12-01'
+  AND a.aa_revenue > 0
+  AND NOT EXISTS (
+    SELECT 1 FROM workspace.gold.agency_month b
+    WHERE b.agency_id = a.agency_id AND b.month >= DATE'2026-01-01' AND b.aa_revenue > 0
+  )
+ORDER BY a.agency_name
+```
+
+### A8. What percent of total AA agency revenue this year came from each agency tier?
+```sql
+SELECT agency_tier,
+       SUM(aa_revenue) / SUM(SUM(aa_revenue)) OVER () * 100 AS pct_of_aa_revenue
+FROM workspace.gold.agency_month
+WHERE month >= DATE'2026-01-01'
+GROUP BY agency_tier
+ORDER BY pct_of_aa_revenue DESC
+```
+
+### A9. What is the median contract attainment of managed accounts in each region this year?
+```sql
+WITH a AS (
+  SELECT region, account_id,
+         SUM(CASE WHEN qsi_eligible THEN aa_pax END)
+           / SUM(CASE WHEN qsi_eligible THEN target_share * total_pax END) AS contract_attainment
+  FROM workspace.gold.account_market_month
+  WHERE segment = 'Managed' AND month >= DATE'2026-01-01'
+  GROUP BY region, account_id
+)
+SELECT region, percentile_cont(0.5) WITHIN GROUP (ORDER BY contract_attainment) AS median_attainment
+FROM a
+GROUP BY region
+ORDER BY region
+```
+
+### A10. Show AA revenue by region with one column for each quarter, Q1 to Q3 2026.
+```sql
+SELECT region,
+       SUM(CASE WHEN month BETWEEN DATE'2026-01-01' AND DATE'2026-03-01' THEN aa_revenue END) AS q1_aa_revenue,
+       SUM(CASE WHEN month BETWEEN DATE'2026-04-01' AND DATE'2026-06-01' THEN aa_revenue END) AS q2_aa_revenue,
+       SUM(CASE WHEN month BETWEEN DATE'2026-07-01' AND DATE'2026-09-01' THEN aa_revenue END) AS q3_aa_revenue
+FROM workspace.gold.account_market_month
+WHERE month BETWEEN DATE'2026-01-01' AND DATE'2026-09-01'
+GROUP BY region
+ORDER BY region
+```
+
 ---
 
 ## 7. Monitor and share

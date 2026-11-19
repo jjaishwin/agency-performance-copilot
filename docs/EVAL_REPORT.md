@@ -26,6 +26,14 @@ Each failure was sorted before anything changed: **benchmark design**, **ambiguo
 
 The checker also now accepts a ratio where points were expected (×100), the mirror of the existing percent-vs-ratio rule.
 
+## Advanced SQL tier (tracked, not gating)
+
+Ten questions that need window functions, top-N per group, running totals, gaps and islands, an anti-join, a median and a pivot (see `docs/ADVANCED_SQL.md`). Reported separately by notebook 09 and on the dashboard; they show where Genie's limits are and where an analyst still writes the SQL.
+
+| Run | Date | Spec version | Advanced passed | Notes |
+|---|---|---|---|---|
+| 1 | | | [ ]/10 | First run of the tier |
+
 ---
 
 ## Brief agent evaluation (notebook 08)

@@ -94,13 +94,14 @@ for i, (q, sql) in enumerate(re.findall(r"\*\*(.+?\?)\*\*\n```sql\n(.*?)```", se
     examples.append(ex)
 
 # 6. Benchmarks ------------------------------------------------------------------------
-benchmarks, labels = [], {}
-for i, (num, q, sql) in enumerate(re.findall(r"### (B\d+)\. (.+?)\n```sql\n(.*?)```", section(6), re.S)):
+benchmarks, labels, tiers = [], {}, {}
+for i, (num, q, sql) in enumerate(re.findall(r"### ([BA]\d+)\. (.+?)\n```sql\n(.*?)```", section(6), re.S)):
     q = q.replace("[Account X]", "{{ACCOUNT_X}}")
     sql = sql.replace("[Account X]", "{{ACCOUNT_X}}")
     benchmarks.append({"id": gid("benchmark", i, num), "question": [q],
                        "answer": [{"format": "SQL", "content": sql_lines(sql)}]})
     labels[benchmarks[-1]["id"]] = num
+    tiers[benchmarks[-1]["id"]] = "core" if num.startswith("B") else "advanced"
 
 sample_questions = [
     "Which managed accounts are at risk this year?",
@@ -132,14 +133,16 @@ for coll in ("tables", "metric_views"):
 all_instr = ids(examples) + ids(filters) + ids(measures) + ids(space["instructions"]["text_instructions"])
 assert len(all_instr) == len(set(all_instr))
 assert len(tables) + len(metric_views) <= 5
-assert len(benchmarks) == 15 and len(examples) == 5
+n_core = sum(t == "core" for t in tiers.values())
+assert n_core == 15 and len(benchmarks) - n_core == 10 and len(examples) == 5
 
 meta = {
     "title": "Agency Performance Copilot",
     "description": re.search(r"> (Ask about.+)", section(1)).group(1).strip(),
     "benchmark_labels": labels,
+    "benchmark_tiers": tiers,  # core = release gate; advanced = tracked, not gating
 }
 out = {"meta": meta, "serialized_space": space}
 (HERE / "agent_spec.json").write_text(json.dumps(out, indent=2) + "\n")
 print(f"agent_spec.json: {len(tables)} tables, {len(metric_views)} metric views, {len(examples)} examples, "
-      f"{len(measures)} measures, {len(filters)} filters, {len(benchmarks)} benchmarks")
+      f"{len(measures)} measures, {len(filters)} filters, {n_core} core + {len(benchmarks) - n_core} advanced benchmarks")

@@ -17,7 +17,44 @@
       "7000000b8acfe827853aff5217d7ef21": "B12",
       "7000000ced90f7f5841740336de541fe": "B13",
       "7000000d530dfc676c50e010122f2144": "B14",
-      "7000000eb76c54330985f58b41b1a3eb": "B15"
+      "7000000eb76c54330985f58b41b1a3eb": "B15",
+      "7000000f27f237e6b7f96587b6202ff3": "A1",
+      "70000010c6bdf6f65f3845da9085e9ae": "A2",
+      "700000116593d7b12fd418cdb35bbf43": "A3",
+      "700000120c2f3adf2a48bab3adb470f4": "A4",
+      "70000013c6f2f93133905f75da4b02cc": "A5",
+      "700000140b3d5609ee81e50809b7351e": "A6",
+      "70000015be523bdcc111d8113eb54f74": "A7",
+      "70000016fd301d675be7b677ba979a43": "A8",
+      "700000178650e375ee80b2277a84fc9b": "A9",
+      "700000184657042965f502f52dcf78fd": "A10"
+    },
+    "benchmark_tiers": {
+      "70000000c9512565ef6194ca664dc41e": "core",
+      "70000001bbd97b00c539801e32317ab5": "core",
+      "700000020c4ecd7b59ebc5b9f47974cb": "core",
+      "70000003d5d4cc7b09d1843517acc936": "core",
+      "700000042a1ab298edf0162a3305e599": "core",
+      "7000000568b1f1cc15d8987eafe633c9": "core",
+      "70000006d8498108dd603522047564a8": "core",
+      "70000007c897976b22b91e2937555adb": "core",
+      "7000000818fc90be5b8124af983421d2": "core",
+      "700000095224d572f0d791f58c66e4dc": "core",
+      "7000000ac064aa5670a62419ecc714e0": "core",
+      "7000000b8acfe827853aff5217d7ef21": "core",
+      "7000000ced90f7f5841740336de541fe": "core",
+      "7000000d530dfc676c50e010122f2144": "core",
+      "7000000eb76c54330985f58b41b1a3eb": "core",
+      "7000000f27f237e6b7f96587b6202ff3": "advanced",
+      "70000010c6bdf6f65f3845da9085e9ae": "advanced",
+      "700000116593d7b12fd418cdb35bbf43": "advanced",
+      "700000120c2f3adf2a48bab3adb470f4": "advanced",
+      "70000013c6f2f93133905f75da4b02cc": "advanced",
+      "700000140b3d5609ee81e50809b7351e": "advanced",
+      "70000015be523bdcc111d8113eb54f74": "advanced",
+      "70000016fd301d675be7b677ba979a43": "advanced",
+      "700000178650e375ee80b2277a84fc9b": "advanced",
+      "700000184657042965f502f52dcf78fd": "advanced"
     }
   },
   "serialized_space": {
@@ -664,6 +701,247 @@
                 "GROUP BY market_name\n",
                 "ORDER BY total_pax DESC\n",
                 "LIMIT 5"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "7000000f27f237e6b7f96587b6202ff3",
+          "question": [
+            "Show AA passenger share by region for each month from February to October 2026, with the change in percentage points from the previous month."
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "WITH m AS (\n",
+                "  SELECT region, month, SUM(aa_pax) / SUM(total_pax) AS passenger_share\n",
+                "  FROM workspace.gold.account_market_month\n",
+                "  WHERE month >= DATE'2026-01-01'\n",
+                "  GROUP BY region, month\n",
+                ")\n",
+                "SELECT region, month,\n",
+                "       (passenger_share - LAG(passenger_share) OVER (PARTITION BY region ORDER BY month)) * 100 AS change_pts\n",
+                "FROM m\n",
+                "QUALIFY month >= DATE'2026-02-01'\n",
+                "ORDER BY region, month"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "70000010c6bdf6f65f3845da9085e9ae",
+          "question": [
+            "For each account manager, which managed account has the lowest contract attainment this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "WITH a AS (\n",
+                "  SELECT account_manager, account_name,\n",
+                "         SUM(CASE WHEN qsi_eligible THEN aa_pax END)\n",
+                "           / SUM(CASE WHEN qsi_eligible THEN target_share * total_pax END) AS contract_attainment\n",
+                "  FROM workspace.gold.account_market_month\n",
+                "  WHERE segment = 'Managed' AND month >= DATE'2026-01-01'\n",
+                "  GROUP BY account_manager, account_name\n",
+                ")\n",
+                "SELECT account_manager, account_name, contract_attainment\n",
+                "FROM a\n",
+                "QUALIFY ROW_NUMBER() OVER (PARTITION BY account_manager ORDER BY contract_attainment ASC) = 1\n",
+                "ORDER BY account_manager"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "700000116593d7b12fd418cdb35bbf43",
+          "question": [
+            "What are the top 3 markets by AA revenue in each region this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "WITH r AS (\n",
+                "  SELECT region, market_name, SUM(aa_revenue) AS aa_revenue\n",
+                "  FROM workspace.gold.account_market_month\n",
+                "  WHERE month >= DATE'2026-01-01'\n",
+                "  GROUP BY region, market_name\n",
+                ")\n",
+                "SELECT region, market_name, aa_revenue\n",
+                "FROM r\n",
+                "QUALIFY ROW_NUMBER() OVER (PARTITION BY region ORDER BY aa_revenue DESC) <= 3\n",
+                "ORDER BY region, aa_revenue DESC"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "700000120c2f3adf2a48bab3adb470f4",
+          "question": [
+            "What is the smallest number of accounts that together make up at least 80% of AA revenue this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "WITH a AS (\n",
+                "  SELECT account_id, SUM(aa_revenue) AS aa_revenue\n",
+                "  FROM workspace.gold.account_market_month\n",
+                "  WHERE month >= DATE'2026-01-01'\n",
+                "  GROUP BY account_id\n",
+                "),\n",
+                "c AS (\n",
+                "  SELECT ROW_NUMBER() OVER (ORDER BY aa_revenue DESC) AS accounts,\n",
+                "         SUM(aa_revenue) OVER (ORDER BY aa_revenue DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n",
+                "           / SUM(aa_revenue) OVER () AS cumulative_share\n",
+                "  FROM a\n",
+                ")\n",
+                "SELECT MIN(accounts) AS accounts_for_80_pct FROM c WHERE cumulative_share >= 0.8"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "70000013c6f2f93133905f75da4b02cc",
+          "question": [
+            "Which markets were below AA's fair share for at least 3 consecutive months in 2026?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "WITH m AS (\n",
+                "  SELECT market_name, month,\n",
+                "         SUM(aa_pax) < SUM(qsi_share * total_pax) AS below\n",
+                "  FROM workspace.gold.account_market_month\n",
+                "  WHERE month >= DATE'2026-01-01'\n",
+                "  GROUP BY market_name, month\n",
+                "),\n",
+                "g AS (\n",
+                "  SELECT market_name, month, below,\n",
+                "         ROW_NUMBER() OVER (PARTITION BY market_name ORDER BY month)\n",
+                "       - ROW_NUMBER() OVER (PARTITION BY market_name, below ORDER BY month) AS island\n",
+                "  FROM m\n",
+                ")\n",
+                "SELECT DISTINCT market_name\n",
+                "FROM g\n",
+                "WHERE below\n",
+                "GROUP BY market_name, island\n",
+                "HAVING COUNT(*) >= 3\n",
+                "ORDER BY market_name"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "700000140b3d5609ee81e50809b7351e",
+          "question": [
+            "For April to October 2026, what was the rolling 3-month total of AA revenue (the month plus the two months before it)?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "WITH m AS (\n",
+                "  SELECT month, SUM(aa_revenue) AS aa_revenue\n",
+                "  FROM workspace.gold.account_market_month\n",
+                "  WHERE month >= DATE'2026-01-01'\n",
+                "  GROUP BY month\n",
+                ")\n",
+                "SELECT month,\n",
+                "       SUM(aa_revenue) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS rolling_3m_aa_revenue\n",
+                "FROM m\n",
+                "QUALIFY month >= DATE'2026-04-01'\n",
+                "ORDER BY month"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "70000015be523bdcc111d8113eb54f74",
+          "question": [
+            "Which agencies had AA revenue in 2025 but none so far in 2026?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT DISTINCT a.agency_name\n",
+                "FROM workspace.gold.agency_month a\n",
+                "WHERE a.month BETWEEN DATE'2025-01-01' AND DATE'2025-12-01'\n",
+                "  AND a.aa_revenue > 0\n",
+                "  AND NOT EXISTS (\n",
+                "    SELECT 1 FROM workspace.gold.agency_month b\n",
+                "    WHERE b.agency_id = a.agency_id AND b.month >= DATE'2026-01-01' AND b.aa_revenue > 0\n",
+                "  )\n",
+                "ORDER BY a.agency_name"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "70000016fd301d675be7b677ba979a43",
+          "question": [
+            "What percent of total AA agency revenue this year came from each agency tier?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT agency_tier,\n",
+                "       SUM(aa_revenue) / SUM(SUM(aa_revenue)) OVER () * 100 AS pct_of_aa_revenue\n",
+                "FROM workspace.gold.agency_month\n",
+                "WHERE month >= DATE'2026-01-01'\n",
+                "GROUP BY agency_tier\n",
+                "ORDER BY pct_of_aa_revenue DESC"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "700000178650e375ee80b2277a84fc9b",
+          "question": [
+            "What is the median contract attainment of managed accounts in each region this year?"
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "WITH a AS (\n",
+                "  SELECT region, account_id,\n",
+                "         SUM(CASE WHEN qsi_eligible THEN aa_pax END)\n",
+                "           / SUM(CASE WHEN qsi_eligible THEN target_share * total_pax END) AS contract_attainment\n",
+                "  FROM workspace.gold.account_market_month\n",
+                "  WHERE segment = 'Managed' AND month >= DATE'2026-01-01'\n",
+                "  GROUP BY region, account_id\n",
+                ")\n",
+                "SELECT region, percentile_cont(0.5) WITHIN GROUP (ORDER BY contract_attainment) AS median_attainment\n",
+                "FROM a\n",
+                "GROUP BY region\n",
+                "ORDER BY region"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "700000184657042965f502f52dcf78fd",
+          "question": [
+            "Show AA revenue by region with one column for each quarter, Q1 to Q3 2026."
+          ],
+          "answer": [
+            {
+              "format": "SQL",
+              "content": [
+                "SELECT region,\n",
+                "       SUM(CASE WHEN month BETWEEN DATE'2026-01-01' AND DATE'2026-03-01' THEN aa_revenue END) AS q1_aa_revenue,\n",
+                "       SUM(CASE WHEN month BETWEEN DATE'2026-04-01' AND DATE'2026-06-01' THEN aa_revenue END) AS q2_aa_revenue,\n",
+                "       SUM(CASE WHEN month BETWEEN DATE'2026-07-01' AND DATE'2026-09-01' THEN aa_revenue END) AS q3_aa_revenue\n",
+                "FROM workspace.gold.account_market_month\n",
+                "WHERE month BETWEEN DATE'2026-01-01' AND DATE'2026-09-01'\n",
+                "GROUP BY region\n",
+                "ORDER BY region"
               ]
             }
           ]

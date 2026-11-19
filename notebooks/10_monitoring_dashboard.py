@@ -73,19 +73,31 @@ sales_datasets = {
                 WHERE month >= DATE'2026-01-01') AS share_vs_fair_share_pts""",
 }
 
+# Older runs (before the advanced tier existed) have no tier column: treat them as core.
+TIER = "COALESCE(tier, 'core')" if HAS_GENIE_RUNS and "tier" in spark.table(f"{GOLD}.genie_benchmark_runs").columns else "'core'"
+
 genie_datasets = {
     "benchmark_runs": f"""
         SELECT run_id, MIN(run_ts) AS run_ts, FIRST(spec_version) AS spec_version,
-               SUM(CASE WHEN status = 'PASS' THEN 1 ELSE 0 END) AS passed, COUNT(*) AS total,
-               SUM(CASE WHEN status = 'PASS' THEN 1 ELSE 0 END) / COUNT(*) AS pass_rate,
+               SUM(CASE WHEN status = 'PASS' AND {TIER} = 'core' THEN 1 ELSE 0 END) AS passed,
+               SUM(CASE WHEN {TIER} = 'core' THEN 1 ELSE 0 END) AS total,
+               SUM(CASE WHEN status = 'PASS' AND {TIER} = 'core' THEN 1 ELSE 0 END)
+                 / SUM(CASE WHEN {TIER} = 'core' THEN 1 ELSE 0 END) AS pass_rate,
+               SUM(CASE WHEN status = 'PASS' AND {TIER} = 'advanced' THEN 1 ELSE 0 END)
+                 / NULLIF(SUM(CASE WHEN {TIER} = 'advanced' THEN 1 ELSE 0 END), 0) AS advanced_pass_rate,
                AVG(latency_s) AS avg_latency_s
         FROM {GOLD}.genie_benchmark_runs GROUP BY run_id""",
+    "latest_run": f"""
+        SELECT SUM(CASE WHEN status = 'PASS' AND {TIER} = 'advanced' THEN 1 ELSE 0 END)
+                 / NULLIF(SUM(CASE WHEN {TIER} = 'advanced' THEN 1 ELSE 0 END), 0) AS advanced_pass_rate
+        FROM {GOLD}.genie_benchmark_runs
+        WHERE run_id = (SELECT run_id FROM {GOLD}.genie_benchmark_runs ORDER BY run_ts DESC LIMIT 1)""",
     "latest_failures": f"""
-        SELECT benchmark, status, question, detail, latency_s
+        SELECT benchmark, {TIER} AS tier, status, question, detail, latency_s
         FROM {GOLD}.genie_benchmark_runs
         WHERE run_id = (SELECT run_id FROM {GOLD}.genie_benchmark_runs ORDER BY run_ts DESC LIMIT 1)
           AND status <> 'PASS'
-        ORDER BY benchmark""",
+        ORDER BY tier DESC, benchmark""",
 }
 
 ops_datasets = {
@@ -171,10 +183,10 @@ monitoring_layout = [
 if HAS_GENIE_RUNS:
     monitoring_layout += [
         chart("line", "accuracy", "benchmark_runs", "run_ts", "pass_rate", 0, 2, 4, 5,
-              "Genie benchmark accuracy per run (gate: 90%)", xtype="temporal"),
-        counter("latency", "benchmark_runs", "avg_latency_s", 4, 2, "Avg Genie latency (s)"),
-        counter("runs", "benchmark_runs", "total", 4, 5, "Benchmarks per run"),
-        table("failures", "latest_failures", ["benchmark", "status", "question", "detail"], 0, 7, 6, 5,
+              "Genie core benchmark accuracy per run (release gate: 90%)", xtype="temporal"),
+        counter("advanced", "latest_run", "advanced_pass_rate", 4, 2, "Advanced SQL tier, latest run (not gating)"),
+        counter("runs", "benchmark_runs", "total", 4, 5, "Core benchmarks per run"),
+        table("failures", "latest_failures", ["benchmark", "tier", "status", "question", "detail"], 0, 7, 6, 5,
               "Latest run: benchmarks that didn't pass"),
     ]
 monitoring_layout += [
