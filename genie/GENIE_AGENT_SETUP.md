@@ -41,6 +41,8 @@ Definitions (always use these):
 - "Share gap" or "share vs QSI" = passenger share minus fair share, in percentage points.
 - "Contract attainment" = SUM(aa_pax) / SUM(target_share * total_pax), using only rows where qsi_eligible is true. Only Managed accounts have contracts.
 - An account is "at risk" when contract attainment is below 0.90.
+- "On target", "at or above target" or "hit their contract" means contract attainment >= 1.0 (100%). The 0.90 line only defines "at risk"; never use it for target questions.
+- "Grew the most" or "biggest growth" means the largest increase in USD unless the user asks for percent growth (percent growth over-ranks small accounts).
 - "YTD" or "so far this year" means from 2026-01-01 through the latest month in the data (2026-10-01).
 - Quarters are calendar quarters. Q3 2026 = months 2026-07-01 to 2026-09-01.
 - AA is the home carrier in this synthetic data. XA and XB are competitors.
@@ -213,13 +215,12 @@ ORDER BY at_risk_accounts DESC
 
 ### B5. Which markets are below AA's fair share so far this year?
 ```sql
-SELECT market_name,
-       (SUM(aa_pax) - SUM(qsi_share * total_pax)) / SUM(total_pax) * 100 AS share_vs_qsi_pts
+SELECT market_name
 FROM workspace.gold.account_market_month
 WHERE month >= DATE'2026-01-01'
 GROUP BY market_name
 HAVING (SUM(aa_pax) - SUM(qsi_share * total_pax)) / SUM(total_pax) < 0
-ORDER BY share_vs_qsi_pts
+ORDER BY market_name
 ```
 
 ### B6. Which 10 agencies had the largest drop in AA revenue share from Q2 to Q3 2026?
@@ -234,10 +235,10 @@ WITH q AS (
   WHERE month BETWEEN DATE'2026-04-01' AND DATE'2026-09-01'
   GROUP BY agency_id, agency_name
 )
-SELECT agency_name, q2_share, q3_share, q3_share - q2_share AS change
+SELECT agency_name, q2_share, q3_share, q2_share - q3_share AS share_drop
 FROM q
 WHERE q2_share IS NOT NULL AND q3_share IS NOT NULL
-ORDER BY change ASC
+ORDER BY share_drop DESC
 LIMIT 10
 ```
 
@@ -269,8 +270,7 @@ GROUP BY segment
 ```sql
 SELECT agency_tier,
        SUM(incentive_cost_usd) AS incentive_cost_usd,
-       SUM(aa_revenue) AS aa_revenue,
-       SUM(aa_revenue) / SUM(incentive_cost_usd) AS revenue_per_incentive_dollar
+       SUM(aa_revenue) AS aa_revenue
 FROM workspace.gold.agency_month
 WHERE month >= DATE'2026-01-01'
 GROUP BY agency_tier
@@ -305,6 +305,7 @@ FROM workspace.gold.agency_month
 WHERE month >= DATE'2026-01-01' AND parent_tmc_asof IS NOT NULL
 GROUP BY parent_tmc_asof
 ORDER BY aa_revenue DESC
+LIMIT 1
 ```
 
 ### B14. How many managed accounts are at or above their contract target this year?

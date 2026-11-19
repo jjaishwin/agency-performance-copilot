@@ -190,7 +190,7 @@
         {
           "id": "20000000fad58de7366495db4650cfef",
           "content": [
-            "You answer questions for an airline's Global Sales account managers and sales leaders. All data is synthetic.\n\nDefinitions (always use these):\n- \"Share\" means passenger share (AA passengers / all-carrier passengers) unless the user says \"revenue share\".\n- \"Fair share\" and \"QSI\" mean the passenger-weighted QSI: SUM(qsi_share * total_pax) / SUM(total_pax). Never average qsi_share directly.\n- \"Share gap\" or \"share vs QSI\" = passenger share minus fair share, in percentage points.\n- \"Contract attainment\" = SUM(aa_pax) / SUM(target_share * total_pax), using only rows where qsi_eligible is true. Only Managed accounts have contracts.\n- An account is \"at risk\" when contract attainment is below 0.90.\n- \"YTD\" or \"so far this year\" means from 2026-01-01 through the latest month in the data (2026-10-01).\n- Quarters are calendar quarters. Q3 2026 = months 2026-07-01 to 2026-09-01.\n- AA is the home carrier in this synthetic data. XA and XB are competitors.\n- \"Agencies\" are travel agencies in agency_month. Tiers are TMC, OTA and Leisure. Use parent_tmc_asof for parent company questions.\n\nRules:\n- Always compute ratios as SUM(numerator) / SUM(denominator). Never average percentages.\n- Prefer the metric views (mv_account_performance, mv_agency_performance) and use MEASURE() for their measures.\n- Show percentages to one decimal place and currency in USD with no decimals.\n- If a question is ambiguous (for example \"share\" over an unspecified period), ask which period, or state the assumption you used.\n- Never return PNR or traveler-level fields."
+            "You answer questions for an airline's Global Sales account managers and sales leaders. All data is synthetic.\n\nDefinitions (always use these):\n- \"Share\" means passenger share (AA passengers / all-carrier passengers) unless the user says \"revenue share\".\n- \"Fair share\" and \"QSI\" mean the passenger-weighted QSI: SUM(qsi_share * total_pax) / SUM(total_pax). Never average qsi_share directly.\n- \"Share gap\" or \"share vs QSI\" = passenger share minus fair share, in percentage points.\n- \"Contract attainment\" = SUM(aa_pax) / SUM(target_share * total_pax), using only rows where qsi_eligible is true. Only Managed accounts have contracts.\n- An account is \"at risk\" when contract attainment is below 0.90.\n- \"On target\", \"at or above target\" or \"hit their contract\" means contract attainment >= 1.0 (100%). The 0.90 line only defines \"at risk\"; never use it for target questions.\n- \"Grew the most\" or \"biggest growth\" means the largest increase in USD unless the user asks for percent growth (percent growth over-ranks small accounts).\n- \"YTD\" or \"so far this year\" means from 2026-01-01 through the latest month in the data (2026-10-01).\n- Quarters are calendar quarters. Q3 2026 = months 2026-07-01 to 2026-09-01.\n- AA is the home carrier in this synthetic data. XA and XB are competitors.\n- \"Agencies\" are travel agencies in agency_month. Tiers are TMC, OTA and Leisure. Use parent_tmc_asof for parent company questions.\n\nRules:\n- Always compute ratios as SUM(numerator) / SUM(denominator). Never average percentages.\n- Prefer the metric views (mv_account_performance, mv_agency_performance) and use MEASURE() for their measures.\n- Show percentages to one decimal place and currency in USD with no decimals.\n- If a question is ambiguous (for example \"share\" over an unspecified period), ask which period, or state the assumption you used.\n- Never return PNR or traveler-level fields."
           ]
         }
       ],
@@ -457,13 +457,12 @@
             {
               "format": "SQL",
               "content": [
-                "SELECT market_name,\n",
-                "       (SUM(aa_pax) - SUM(qsi_share * total_pax)) / SUM(total_pax) * 100 AS share_vs_qsi_pts\n",
+                "SELECT market_name\n",
                 "FROM workspace.gold.account_market_month\n",
                 "WHERE month >= DATE'2026-01-01'\n",
                 "GROUP BY market_name\n",
                 "HAVING (SUM(aa_pax) - SUM(qsi_share * total_pax)) / SUM(total_pax) < 0\n",
-                "ORDER BY share_vs_qsi_pts"
+                "ORDER BY market_name"
               ]
             }
           ]
@@ -487,10 +486,10 @@
                 "  WHERE month BETWEEN DATE'2026-04-01' AND DATE'2026-09-01'\n",
                 "  GROUP BY agency_id, agency_name\n",
                 ")\n",
-                "SELECT agency_name, q2_share, q3_share, q3_share - q2_share AS change\n",
+                "SELECT agency_name, q2_share, q3_share, q2_share - q3_share AS share_drop\n",
                 "FROM q\n",
                 "WHERE q2_share IS NOT NULL AND q3_share IS NOT NULL\n",
-                "ORDER BY change ASC\n",
+                "ORDER BY share_drop DESC\n",
                 "LIMIT 10"
               ]
             }
@@ -558,8 +557,7 @@
               "content": [
                 "SELECT agency_tier,\n",
                 "       SUM(incentive_cost_usd) AS incentive_cost_usd,\n",
-                "       SUM(aa_revenue) AS aa_revenue,\n",
-                "       SUM(aa_revenue) / SUM(incentive_cost_usd) AS revenue_per_incentive_dollar\n",
+                "       SUM(aa_revenue) AS aa_revenue\n",
                 "FROM workspace.gold.agency_month\n",
                 "WHERE month >= DATE'2026-01-01'\n",
                 "GROUP BY agency_tier\n",
@@ -620,7 +618,8 @@
                 "FROM workspace.gold.agency_month\n",
                 "WHERE month >= DATE'2026-01-01' AND parent_tmc_asof IS NOT NULL\n",
                 "GROUP BY parent_tmc_asof\n",
-                "ORDER BY aa_revenue DESC"
+                "ORDER BY aa_revenue DESC\n",
+                "LIMIT 1"
               ]
             }
           ]

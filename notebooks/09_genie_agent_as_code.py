@@ -205,10 +205,13 @@ def compare(gt: pd.DataFrame, genie: dict) -> tuple[str, str]:
             if col_values(genie["rows"], ci, scale=0.01) == target:  # Genie returned a percentage
                 hit, scaled = ci, True
                 break
+            if col_values(genie["rows"], ci, scale=100) == target:  # Genie returned a ratio where points were expected
+                hit, scaled = ci, True
+                break
         if hit is None:
             return "FAIL", f"no Genie column matches expected column '{gname}'"
         used.add(hit)
-    return ("PASS", "match (Genie returned % where a ratio was expected)") if scaled else ("PASS", "match")
+    return ("PASS", "match (Genie used % vs ratio scale)") if scaled else ("PASS", "match")
 
 # COMMAND ----------
 

@@ -8,21 +8,23 @@
 
 | Run | Date | Change since last run | Score |
 |---|---|---|---|
-| 1 | [date] | Baseline: tables + instructions only | [ ]/15 |
-| 2 | [date] | [e.g., added SQL expressions for share and attainment] | [ ]/15 |
-| 3 | [date] | [e.g., added column comments; entity matching on account_name] | [ ]/15 |
+| 1 | 2026-11-18 | Baseline: agent deployed as code (notebook 09), metric views, 5 example queries, instructions | 9/15 (gate failed) |
+| 2 | | Benchmark fixes (B5, B6, B10, B13) and two new definitions in the instructions (B12, B14) | [ ]/15 |
 
-## Failures and root causes
+## Failures and root causes (run 1)
 
-| Benchmark | What Genie did | Root cause | Fix | Fixed in run |
-|---|---|---|---|---|
-| [B5] | [e.g., averaged qsi_share instead of weighting] | [no SQL expression for fair share] | [added "fair share" SQL expression] | [2] |
-| | | | | |
+Each failure was sorted before anything changed: **benchmark design**, **ambiguous question**, or **real Genie mistake**. Only real mistakes are fixed in the agent; benchmark problems are fixed in the benchmark.
 
-## What I learned
+| Benchmark | What Genie did | Root cause | Fix |
+|---|---|---|---|
+| B5 | Correct markets, with share and fair share, but no gap column | Benchmark design: the question asks *which markets*; the expected answer required an extra column | Expected answer returns the markets only |
+| B6 | Correct agencies, Q2 and Q3 shares; "drop" as a positive number | Benchmark design: expected answer used a negative "change" although the question says "drop" | Expected answer reports `share_drop = q2 - q3` |
+| B10 | Correct cost and revenue by tier, no ratio | Benchmark design: the question never asks for revenue per incentive dollar | Ratio removed from the expected answer |
+| B13 | Returned the single top parent TMC | Benchmark design: "which drove the most" is one TMC; expected answer listed all five | Expected answer `LIMIT 1` |
+| B12 | Ranked by percent growth; expected was dollar growth | Ambiguous business definition | Instruction: "grew the most" means USD increase unless percent is asked (percent over-ranks small accounts) |
+| B14 | Counted accounts at ≥ 90% for "at or above contract target" | **Real Genie mistake:** confused the 0.90 at-risk line with the 100% target | Instruction: on target means attainment ≥ 1.0; 0.90 only defines "at risk" |
 
-- [One or two sentences: which kind of fix helped most, such as descriptions or SQL expressions rather than more instructions]
-- [Anything Genie still can't do reliably, and how you'd handle it in production]
+The checker also now accepts a ratio where points were expected (×100), the mirror of the existing percent-vs-ratio rule.
 
 ---
 
