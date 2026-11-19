@@ -182,6 +182,12 @@ except Exception as e:
 
 # COMMAND ----------
 
+# Self-contained, so this cell also works when run on its own after a restart.
+CATALOG = dbutils.widgets.get("catalog")
+GOLD = f"{CATALOG}.gold"
+ME = spark.sql("SELECT current_user() AS u").first()["u"]
+READER_GROUP = "account users"
+
 checks = []
 
 def check(name, fn):

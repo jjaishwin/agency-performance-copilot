@@ -137,9 +137,10 @@ def chart(kind, name, dataset, xcol, ycol, x, y, wdt, h, title, xtype="categoric
 
 def table(name, dataset, cols, x, y, wdt, h, title):
     return widget(name, dataset, [field(c) for c in cols],
-                  {"version": 1, "widgetType": "table",
-                   "encodings": {"columns": [{"fieldName": c, "displayName": c, "title": c, "visible": True, "order": i}
-                                             for i, c in enumerate(cols)]}},
+                  # Table widgets are spec version 2, and each column takes only fieldName + displayName;
+                  # any other column property makes the widget "Invalid widget definition".
+                  {"version": 2, "widgetType": "table",
+                   "encodings": {"columns": [{"fieldName": c, "displayName": c.replace("_", " ")} for c in cols]}},
                   x, y, wdt, h, title)
 
 
