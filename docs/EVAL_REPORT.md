@@ -9,7 +9,7 @@
 | Run | Date | Change since last run | Score |
 |---|---|---|---|
 | 1 | 2026-11-18 | Baseline: agent deployed as code (notebook 09), metric views, 5 example queries, instructions | 9/15 (gate failed) |
-| 2 | | Benchmark fixes (B5, B6, B10, B13) and two new definitions in the instructions (B12, B14) | [ ]/15 |
+| 2 | 2026-11-18 | Benchmark fixes (B5, B6, B10, B13) and two new definitions in the instructions (B12, B14) | **14/15 (gate passed)** |
 
 ## Failures and root causes (run 1)
 
@@ -26,13 +26,33 @@ Each failure was sorted before anything changed: **benchmark design**, **ambiguo
 
 The checker also now accepts a ratio where points were expected (×100), the mirror of the existing percent-vs-ratio rule.
 
+## Failures and root causes (run 2)
+
+| Benchmark | What Genie did | Root cause | Status |
+|---|---|---|---|
+| B6 | Computed each quarter's revenue share as `MEASURE(aa_revenue) / MEASURE(aa_revenue)`, so every share was 100% and every "drop" was 0. The table looked plausible. | **Real Genie mistake.** In run 1 the same question used `MEASURE(revenue_share)` correctly: Genie is not deterministic, which is why every release re-runs every benchmark. | Open. Candidate fix: define agency revenue share as `MEASURE(revenue_share)` in the instructions. |
+
+B5, B10, B12, B13 and B14 all passed after the run 1 fixes, including both instruction changes (dollar growth for B12, 100% target for B14).
+
 ## Advanced SQL tier (tracked, not gating)
 
 Ten questions that need window functions, top-N per group, running totals, gaps and islands, an anti-join, a median and a pivot (see `docs/ADVANCED_SQL.md`). Reported separately by notebook 09 and on the dashboard; they show where Genie's limits are and where an analyst still writes the SQL.
 
 | Run | Date | Spec version | Advanced passed | Notes |
 |---|---|---|---|---|
-| 1 | | | [ ]/10 | First run of the tier |
+| 1 | 2026-11-18 | 6942ac5fca87 | 5/10 | Every failure is a real SQL mistake, none is a checker artefact (below) |
+
+| Benchmark | What Genie did | The mistake |
+|---|---|---|
+| A1 | `LAG()` in the same query as `WHERE month >= Feb` | `WHERE` runs before window functions, so January was gone and February's change was NULL. Compute the window first, then filter. |
+| A6 | Filtered to April–October, then took the rolling 3-month sum | Same ordering mistake: April's window lost February and March. |
+| A4 | Found the account that crosses 80%, then returned `COUNT(*)` of that one row | Answered 1 instead of the account's rank in the running total. |
+| A7 | Matched 2025 and 2026 revenue on agency **name** | Two agencies were renamed ("X Travel" → "X Travel Group"), so it reported two lost agencies that are still booking. Match on IDs. |
+| A9 | `percentile_approx(…, 0.5)` | Approximate median returns a nearby actual value; the exact median (`percentile_cont`) interpolates. Small but real difference. |
+
+Passed: A2 (lowest per group), A3 (top 3 per group), A5 (gaps and islands), A8 (percent of total), A10 (pivot).
+
+**Takeaway:** Genie is strong on business definitions once they're written down (core 14/15) and on many window patterns, but makes the classic analyst mistakes on filter-vs-window order, entity matching and off-by-one logic. Those questions stay with an analyst, or get a reviewed example query.
 
 ---
 

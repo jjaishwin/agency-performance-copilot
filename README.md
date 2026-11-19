@@ -60,7 +60,7 @@ CI/CD: Declarative Automation Bundle (Lakeflow job 01→12 + app) · GitHub Acti
 | Agency scorecard (latest quarter) | 104 Green · 28 Amber · 68 Red |
 | Managed accounts at risk (attainment < 90%) | 69 of 200 |
 | Brief agent: key numbers exact / under word limit | **[X]% / [Y]%** on 20 evaluation accounts |
-| Genie benchmark accuracy | **9/15 first run → [Y]/15 after root-cause fixes**; advanced SQL tier [ ]/10 (tracked, not gating) |
+| Genie benchmark accuracy | **9/15 first run → 14/15 after root-cause fixes** (gate 90%); advanced SQL tier 5/10, tracked, not gating |
 
 See [`docs/EVAL_REPORT.md`](docs/EVAL_REPORT.md) for the iteration log.
 
