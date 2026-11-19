@@ -26,6 +26,7 @@ CATALOG = dbutils.widgets.get("catalog")
 GOLD = f"{CATALOG}.gold"
 
 import json
+import time
 import mlflow
 from databricks.sdk import WorkspaceClient
 
@@ -71,6 +72,7 @@ def get_account_facts(account_name: str) -> dict:
         "region": row["region"],
         "contract": f"QSI + {row['contract_pts']} points",
         "contract_attainment": f"{float(row['contract_attainment']) * 100:.1f}%",
+        "attainment_target": "100.0%",
         "risk_status": row["risk_status"],
         "passenger_share": f"{float(row['passenger_share']) * 100:.1f}%",
         "fair_share": f"{float(row['fair_share']) * 100:.1f}%",
@@ -93,7 +95,7 @@ def get_account_facts(account_name: str) -> dict:
 SYSTEM_PROMPT = """You write pre-call briefs for an airline's corporate account managers (the carrier is AA in this synthetic data).
 Rules:
 - Use ONLY the facts provided in JSON. Never invent or recalculate numbers.
-- Do not mention thresholds, benchmarks, targets or dates that are not in the facts (no "90% line", no "2026").
+- Do not mention thresholds, benchmarks, targets or dates that are not in the facts.
 - Quote numbers exactly as written in the facts (for example "87.3%" or "$1,234,567"), every time you mention them.
 - At most 140 words. Three short sections with these headings: Where we stand, Watch-outs, Talking points.
 - Talking points are 2 or 3 concrete, polite suggestions for the call.
@@ -117,14 +119,23 @@ def draft_brief(account_name: str, facts: dict = None) -> str:
         return facts["error"]
     if client is None:
         return template_brief(facts)
-    response = client.chat.completions.create(
-        model=MODEL,
-        temperature=0.2,
-        max_tokens=2000,  # reasoning models (gpt-oss) spend tokens thinking before they write
-        messages=[{"role": "system", "content": SYSTEM_PROMPT},
-                  {"role": "user", "content": "Facts:\n" + json.dumps(facts, indent=2)}],
-    )
-    return message_text(response.choices[0].message.content)
+    for attempt in range(3):  # retry rate limits and empty answers
+        try:
+            response = client.chat.completions.create(
+                model=MODEL,
+                temperature=0.2,
+                max_tokens=2000,  # reasoning models (gpt-oss) spend tokens thinking before they write
+                messages=[{"role": "system", "content": SYSTEM_PROMPT},
+                          {"role": "user", "content": "Facts:\n" + json.dumps(facts, indent=2)}],
+            )
+            text = message_text(response.choices[0].message.content)
+            if text:
+                return text
+        except Exception as e:
+            print(f"Model call failed (attempt {attempt + 1}): {str(e)[:120]}")
+        time.sleep(5 * (attempt + 1))
+    # No brief rather than a silent template, so the evaluation counts the failure.
+    return ""
 
 
 def normalize(text: str) -> str:
@@ -189,12 +200,13 @@ for name in eval_accounts:
 
 @scorer
 def key_numbers_exact(outputs, expectations) -> bool:
-    return all(num in outputs for num in expectations["key_numbers"])
+    outputs = outputs or ""
+    return bool(outputs) and all(num in outputs for num in expectations["key_numbers"])
 
 
 @scorer
 def under_word_limit(outputs) -> bool:
-    return len(outputs.split()) <= 160
+    return bool(outputs) and len(outputs.split()) <= 160
 
 
 import re
@@ -212,6 +224,8 @@ def numbers_in(text: str) -> set:
 @scorer
 def no_invented_numbers(inputs, outputs) -> Feedback:
     """Grounding, checked by code: every number in the brief must appear in the certified facts."""
+    if not outputs:
+        return Feedback(value=False, rationale="No brief was produced (model call failed).")
     allowed = numbers_in(json.dumps(inputs["facts"]))
     invented = sorted(numbers_in(outputs) - allowed)
     return Feedback(value=not invented,
@@ -258,7 +272,11 @@ from datetime import datetime, timezone
 
 managed_at_risk = [r["account_name"] for r in spark.sql(
     f"SELECT account_name FROM {GOLD}.account_scorecard WHERE risk_status <> 'On track' ORDER BY contract_attainment LIMIT 30").collect()]
-rows = [(n, draft_brief(n), MODEL or "template", datetime.now(timezone.utc)) for n in managed_at_risk]
+rows = []
+for n in managed_at_risk:
+    text = draft_brief(n)
+    rows.append((n, text or template_brief(get_account_facts(n)), (MODEL if text else None) or "template",
+                 datetime.now(timezone.utc)))
 (spark.createDataFrame(rows, "account_name STRING, brief STRING, model STRING, generated_at TIMESTAMP")
  .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{GOLD}.account_briefs"))
 spark.sql(f"COMMENT ON TABLE {GOLD}.account_briefs IS 'AI-drafted pre-call briefs for at-risk and watch accounts. Internal use; review before sharing.'")
