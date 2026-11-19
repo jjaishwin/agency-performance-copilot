@@ -119,11 +119,24 @@ def draft_brief(account_name: str) -> str:
     response = client.chat.completions.create(
         model=MODEL,
         temperature=0.2,
-        max_tokens=400,
+        max_tokens=2000,  # reasoning models (gpt-oss) spend tokens thinking before they write
         messages=[{"role": "system", "content": SYSTEM_PROMPT},
                   {"role": "user", "content": "Facts:\n" + json.dumps(facts, indent=2)}],
     )
-    return response.choices[0].message.content
+    return message_text(response.choices[0].message.content)
+
+
+def message_text(content) -> str:
+    """Return only the written answer. Reasoning models on Databricks (gpt-oss, Claude with thinking)
+    return content as a list of parts, e.g. [{"type": "reasoning", ...}, {"type": "text", "text": "..."}]."""
+    if isinstance(content, str):
+        return content.strip()
+    parts = []
+    for part in content or []:
+        p = part if isinstance(part, dict) else getattr(part, "__dict__", {})
+        if p.get("type") == "text":
+            parts.append(p.get("text", ""))
+    return "\n".join(parts).strip()
 
 # COMMAND ----------
 
