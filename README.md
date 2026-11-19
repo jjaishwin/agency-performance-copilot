@@ -57,10 +57,12 @@ CI/CD (written): Declarative Automation Bundle (Lakeflow job + app) · GitHub Ac
 | Piece | Status |
 |---|---|
 | Notebooks 01–10, Deal Desk app | Built and run on Databricks Free Edition |
-| Notebook 11 (documents, UC functions, routing set), 13 (Sales Copilot agent) | Built for Free Edition; first run pending |
+| Notebook 11 (documents, UC functions, routing set), 13 (Sales Copilot agent) | Built and run on Free Edition; routing 11/12 (92%) |
+| Notebook 14 (Lakeflow job created from code) | Built for Free Edition; first run pending |
+| Copilot Studio Program Rules Assistant (`microsoft/COPILOT_STUDIO_STEPS.md`) | Steps written; first build pending (trial: test pane only) |
 | Fabric lakehouse + Direct Lake model (`fabric/01_load_gold_to_lakehouse.ipynb`) | Built as code; first run pending (needs a Fabric trial capacity) |
 | Agent Bricks Supervisor and Knowledge Assistant | Designed; needs Azure Databricks Premium |
-| Notebook 12 (`fabric_share` for a mirrored catalog), Copilot Studio, Power Automate | Designed; needs Azure Databricks and Power Platform |
+| Notebook 12 (`fabric_share` for a mirrored catalog), Copilot Studio connected to Genie, Power Automate | Designed; needs Azure Databricks and Power Platform |
 | Bundle deploy and GitHub Actions | Written; not yet run against a workspace |
 
 ## Results
@@ -116,6 +118,7 @@ notebooks/
   11_agent_bricks_prep.py         program docs, UC functions, routing eval for the Sales Copilot agent
   12_fabric_share.py              schema Fabric mirrors (no row filters) + OneLake parity check
   13_sales_copilot_agent.py       tool-calling Sales Copilot agent + routing evaluation
+  14_lakeflow_job_as_code.py      creates and runs the whole pipeline as a Lakeflow job (SDK)
 AZURE_BUILD_GUIDE.md              the full build on Azure Databricks + Fabric + Power Platform
 genie/GENIE_AGENT_SETUP.md        agent configuration + 15 core and 10 advanced benchmarks (source of truth)
 genie/build_agent_spec.py         builds agent_spec.json (serialized_space) from the guide
@@ -123,6 +126,7 @@ dashboards/monitoring.lvdash.json dashboard definition
 data/gold/*.parquet               gold tables exported for Fabric
 fabric/                           OneLake load + Direct Lake model as code + DAX/SQL parity + TMDL export
 microsoft/FABRIC_POWERBI_STEPS.md Fabric trial, lakehouse, report pages, fallback
+microsoft/COPILOT_STUDIO_STEPS.md Program Rules Assistant grounded on docs/program_docs/
 microsoft/powerbi/measures.dax    Direct Lake measures
 databricks.yml                    Declarative Automation Bundle (formerly Asset Bundle): Lakeflow job + Deal Desk app
 .github/workflows/ci.yml          CI/CD
