@@ -73,6 +73,8 @@ def get_account_facts(account_name: str) -> dict:
         "contract": f"QSI + {row['contract_pts']} points",
         "contract_attainment": f"{float(row['contract_attainment']) * 100:.1f}%",
         "attainment_target": "100.0%",
+        # Certified gap, so the model quotes it instead of computing 100 - attainment itself.
+        "attainment_gap_pts": f"{(float(row['contract_attainment']) - 1) * 100:+.1f} pts",
         "risk_status": row["risk_status"],
         "passenger_share": f"{float(row['passenger_share']) * 100:.1f}%",
         "fair_share": f"{float(row['fair_share']) * 100:.1f}%",
