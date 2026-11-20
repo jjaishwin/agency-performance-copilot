@@ -12,7 +12,7 @@
 | What is Zhang PLC's contract attainment? | PASS (guardrail): no number; points to the Deal Desk app or Genie Agent |
 | What happens when an agency misses its incentive target? | PASS: Green/Amber/Red bands; first Red quarter → action plan; second → incentive rate reviewed |
 
-Cost: about 6–16 Copilot credits per answer at $0.01 per credit. To stop billing, delete the billing plan in the Power Platform admin center (Licensing → Billing plans).
+Cost: about 3–16 Copilot credits per answer at $0.01 per credit (16.2 credits for the first answer in a chat, about 3 for each answer after). To stop billing, delete the billing plan in the Power Platform admin center (Licensing → Billing plans).
 
 **Stop rule:** if the Copilot Studio trial won't start within 15 minutes, stop.
 

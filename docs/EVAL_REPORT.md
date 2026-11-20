@@ -93,7 +93,7 @@ Every run of notebook 09 (by hand, from the bundle job or from CI) appends 15 ro
 
 | Date | Spec version | Passed | What changed |
 |---|---|---|---|
-| [date] | [hash] | [ ]/15 | First automated run |
+| – | – | – | No automated run yet: the bundle job and CI are written, first run pending. Runs above were by hand |
 
 ---
 
